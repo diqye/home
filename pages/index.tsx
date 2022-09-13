@@ -1,28 +1,23 @@
+import { Button, Center, Wrap, WrapItem } from '@chakra-ui/react'
 import type { NextPage } from 'next'
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 
 const Home : NextPage = () => {
-  let [a,setA] = useState(8)
-  let stateRef = useRef(a)
-  function onClick(){
-    setA(c=>c+1)
-  }
-  let afn = useCallback(()=>{
-    console.log("callback",a)
-  },[a])
-  useEffect(()=>{
-    setTimeout(()=>{
-      afn()
-    },3000)
-  },[])
-  return <div>
-    <Link href={"/channel/home"}>
-    /channel/home
-    </Link>
-    <div>{a}</div>
-    <button onClick={onClick}>a+1</button>
-  </div>
+  return <Center paddingTop="10">
+    <Wrap spacing="5">
+      <WrapItem>
+        <Link href={"/channel/home"}>
+          <Button colorScheme="teal">Go to home channel</Button>
+        </Link>
+      </WrapItem>
+      <WrapItem>
+        <Link href={"/channel/share"}>
+          <Button colorScheme="teal">Go to share channel</Button>
+        </Link>
+      </WrapItem>
+    </Wrap>
+  </Center>
 }
 export default Home

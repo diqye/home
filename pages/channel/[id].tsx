@@ -40,7 +40,7 @@ let SwitchChannel : React.FC<SwitchChannelProps> = props => {
     }
   }
   let onInput : React.FormEventHandler<HTMLInputElement> = e => {
-      if(e.currentTarget.value == ""){
+      if(e.currentTarget.value == "" || e.currentTarget.value.trim()==""){
         setChannel(oldV => {
           return {...oldV,value:""}
         })
@@ -210,13 +210,19 @@ const TextS : NextPage = () => {
   }
   let [uri,setUri] = useState(router.pathname)
   let { hasCopied, onCopy } = useClipboard(uri)
+  type ConnectionState = Parameters<Parameters<typeof chatForChannel>[1]>[0]
+  let [connectionState,setConnectionState] = useState("online" as ConnectionState)
   useEffect(()=>{
     setUri(location.href)
   },[router.query.id])
   useEffect(()=>{
     if(router.query.id == null) return
     setMe(doName()) 
-    let ws = chatForChannel(router.query.id as string,(ws,e)=>{
+    let ws = chatForChannel(router.query.id as string,
+      state=>{
+        setConnectionState(state)
+      },
+      (ws,e)=>{
       onMessageFromServer(JSON.parse(e.data),ws)
     })
     return ()=>{
@@ -238,6 +244,7 @@ const TextS : NextPage = () => {
     router.push("/channel/" + e)
     onClose()
   }
+  let redScheme = useColorModeValue("red.500","red.300")
   return (
     <BoxOut>
       <SwitchChannel isOpen={isOpen} onClose={onClose} onOk={onConfirm} />
@@ -256,6 +263,10 @@ const TextS : NextPage = () => {
         <Text fontSize={"xs"} ml="px">
           ({members.length}人在线)
         </Text>
+        { connectionState == "online" ? void 0 
+        : connectionState == "offline" ? <Text fontSize="xs" color={redScheme}>你已离线,正在重新建立连接</Text>
+        : <Text color={redScheme} fontSize="xs" >你已离线</Text>
+        }
         <Stack direction="row" flexGrow={1} justifyContent="flex-end">
           <Tooltip label="复制分享">
             <IconButton 
