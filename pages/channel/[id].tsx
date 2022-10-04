@@ -15,6 +15,7 @@ import {
   ModalBody,
   ModalCloseButton,
 } from '@chakra-ui/react'
+import MoonButton from '@c/MoonButton'
 
 type SwitchChannelProps = {
   isOpen: boolean,
@@ -182,8 +183,7 @@ const TextS : NextPage = () => {
       window.scrollTo(0,document.body.scrollHeight)
     }
   },[listUpdatedVersion])
-  let {colorMode,toggleColorMode} = useColorMode()
-  let ColorModeIcon = colorMode == "light" ? <MoonIcon />  : <SunIcon />
+  
   let bg = useColorModeValue("whiteAlpha.900","blackAlpha.200") 
   let sendAction = () => {
     if(message == ""){
@@ -277,9 +277,7 @@ const TextS : NextPage = () => {
           title="更换一个频道"
           onClick={onOpen}
           aria-label='更换一个频道' size={"sm"} icon={<SmallAddIcon />} />
-          <IconButton
-          title="高亮/夜间模式"
-          aria-label='高亮/夜间模式' size={"sm"} onClick={toggleColorMode} icon={ColorModeIcon} />
+          <MoonButton />
         </Stack>
       </Stack>
       <VStack spacing={12}>

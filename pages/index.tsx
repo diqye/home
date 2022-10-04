@@ -17,6 +17,16 @@ const Home : NextPage = () => {
           <Button colorScheme="teal">Go to share channel</Button>
         </Link>
       </WrapItem>
+      <WrapItem>
+        <Link href={"/finance"}>
+          <Button colorScheme="teal">finance</Button>
+        </Link>
+      </WrapItem>
+      <WrapItem>
+        <Link href={"/music"}>
+          <Button colorScheme="pink">music</Button>
+        </Link>
+      </WrapItem>
     </Wrap>
   </Center>
 }

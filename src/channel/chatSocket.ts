@@ -35,7 +35,9 @@ export function doName(){
 }
 let gws = null as WebSocket | null
 let cannelled = false
+let cannelledTimmer = null as any
 export function cancelGlobal(){
+  clearTimeout(cannelledTimmer)
   cannelled = true
   gws?.close()
 }
@@ -61,11 +63,11 @@ export function chatForChannel(chatName:string,onStateChange:(s:ConnectionState)
       } else if([1006].indexOf(e.code) != -1 && cannelled == false) {
         onStateChange("offline")
         if(navigator.onLine){
-          setTimeout(()=>{
+          cannelledTimmer =  setTimeout(()=>{
             chatForChannel(chatName,onStateChange,onMessage,retry + 1)
           },2000)
         }else{
-          setTimeout(()=>{
+          cannelledTimmer = setTimeout(()=>{
             chatForChannel(chatName,onStateChange,onMessage,retry)
           },3000)
         }
