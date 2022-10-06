@@ -1,102 +1,57 @@
 import MoonButton from "@c/MoonButton";
-import {Button, ButtonGroup, Center, Heading,HStack,Input,Text, TextProps, VStack } from "@chakra-ui/react";
+import {Box, Button, ButtonGroup, Center, Heading,HStack,Input,Slider,SliderFilledTrack,SliderMark,SliderThumb,SliderTrack,Text, TextProps, Tooltip, VStack } from "@chakra-ui/react";
 import { NextPage } from "next";
 import Head from "next/head";
 import { FC, useEffect, useState } from "react";
 import { useCurrent } from "src/kit";
-import { actx, IType, loadMusicBox, playWave } from "src/music";
-let n = 2
-let notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"] as const
-function gk(note:typeof notes[number],n:number){
-  return notes.indexOf(note) + (n * 12)
-}
-let keymap = {
-  "1":gk("C",2),
-  "2":gk("D",2),
-  "3":gk("E",2),
-  "4":gk("F",2),
-  "5":gk("G",2),
-  "6":gk("A",2),
-  "7":gk("B",2),
-  "8":gk("C",3),
-  "9":gk("D",3),
-  "0":gk("E",3),
-  "q":gk("F",3),
-  "w":gk("G",3),
-  "e":gk("A",3),
-  "r":gk("B",3),
-  "t":gk("C",4),
-  "y":gk("D",4),
-  "u":gk("E",4),
-  "i":gk("F",4),
-  "o":gk("G",4),
-  "p":gk("A",4),
-  "a":gk("B",4),
-  "s":gk("C",5),
-  "d":gk("D",5),
-  "f":gk("E",5),
-  "g":gk("F",5),
-  "h":gk("G",5),
-  "j":gk("A",5),
-  "k":gk("B",5),
-  "l":gk("C",6),
-  "z":gk("D",6),
-  "x":gk("E",6),
-  "c":gk("F",6),
-  "v":gk("G",6),
-  "b":gk("A",6),
-  "n":gk("B",6),
-  "m":gk("C",7),
+import { actx, IType, loadMusicBox, createWave } from "src/music/music";
+import {lyrics,keymap} from "src/music/notes"
 
-} as Record<string,number>
-let lyrics = [`
-opsdfapaop
-sdfhjsdfgf
-fhjhjpfdsd
-fopafps
-hhjlkjhj
-opsdfapaop
-sdfhjsdfgf
-fhjhjpfdsd
-fopafps
-hhjlkjhj
-hhjlkjhf
-`.trim().split("\n"),`
-uop
-psd
-fhf
-dsp
-fdp
-fdp
-ou
-uop
-psd
-fhf
-dsp
-fdp
-fdp
-op
-fhjjhjkhjhdffhjjhjlkhf
-fhjjhjkhjhdffdpfdpop
-fdpfdpop
-`.trim().split("\n"),`
-1231
-1231
-345
-345
-565431
-565431
-251
-251
-`.trim().split("\n"),`
-1155665
-4433221
-5544332
-5544332
-1155665
-4433221
-`.trim().split("\n"),
-]
+let VolumeSlider : FC<{
+  volume:number, //0 - 100
+  onChange: (volume:number) => void
+}> = props => {
+  return <Slider
+  step={0.5}
+  size="lg"
+  w={["xs","md"]}
+  aria-label='volume' colorScheme='pink' defaultValue={props.volume} onChange={props.onChange}>
+  <SliderMark value={0} fontSize="sm" mt="2" ml="-30px"> 音量:0% </SliderMark>
+  <SliderMark value={50} fontSize="sm" mt="2" ml="-15px"> 100% </SliderMark>
+  <SliderMark value={100} fontSize="sm" mt="2" ml="-15px"> 200% </SliderMark>
+  <SliderTrack>
+    <SliderFilledTrack />
+  </SliderTrack>
+  <Tooltip
+    hasArrow
+    bg='teal.500'
+    color='white'
+    placement='top'
+    label={`${props.volume * 2}%`}
+  >
+    <SliderThumb />
+  </Tooltip>
+</Slider>
+}
+let Note : FC<{note:string}> = props => {
+  useEffect(()=>{
+    if(props.note != ""){
+
+    }else{
+      void null
+    }
+  },[props.note])
+  return <Text
+    pointerEvents="none"
+    fontSize="5xl"
+    color="pink.300"
+    position="fixed"
+    boxShadow="md"
+    p="2"
+    top={["40","0"]}
+    left="0"
+    > ♫ {props.note}</Text>
+}
 let Music : NextPage = props => {
   let [chars,setChars] = useState([] as string[])
   let [char,setChar] = useState("")
@@ -106,7 +61,12 @@ let Music : NextPage = props => {
     index : 0,
     highlight: ""
   })
+  let [volume,setVolume] = useState(50)
+  let [note,setNote] = useState("")
   let fns = useCurrent({
+    getVolume(){
+      return volume * 2 / 100
+    },
     getRefresh(){
       return [lyricIndex,highlight] as const
     },
@@ -120,14 +80,23 @@ let Music : NextPage = props => {
   useEffect(()=>{
     let ctx = actx
     let bufP = loadMusicBox(ctx,type)
-    let map = {} as Record<string,{indown:boolean,source?:AudioBufferSourceNode}>
+    let map = {} as Record<string,{indown:boolean,source?:ReturnType<typeof createWave>}>
     let keydownfn = (e:KeyboardEvent) =>{
       if(e.key.length > 1 || map[e.key]?.indown){
         return 
       }else{
         map[e.key] = {indown:true}
         bufP.then(zones=>{
-          map[e.key].source = playWave(ctx,zones,keymap[e.key.toLowerCase()] || 0)
+          let note = keymap[e.key] || [0,""]
+          let node = createWave(ctx,zones, note[0])
+          map[e.key].source = node
+          let gain = ctx.createGain()
+          gain.gain.setValueAtTime(fns.getVolume(),ctx.currentTime)
+          node?.audioNode.connect(gain)
+          gain.connect(ctx.destination)
+          node?.source.start(ctx.currentTime)
+          node?.source.stop(ctx.currentTime+10)
+          setNote(note[1])
         })
         let [lyricIndex,highlight] = fns.getRefresh()
         if(lyricIndex == -1){
@@ -138,10 +107,15 @@ let Music : NextPage = props => {
         }else{
           let line = fns.getLyric()[highlight.index]
           let rest = line.slice(highlight.highlight.length)
-          if(rest.charAt(0).toLowerCase() == e.key.toLowerCase()){
+          if(rest.charAt(0) == e.key){
+            let append = ""
+            if(rest.charAt(1) == "-"){
+               append += "-"
+               if(rest.charAt(2)=="-")append += "-"
+            }
             setHighlight({
               index: highlight.index,
-              highlight: highlight.highlight + e.key
+              highlight: highlight.highlight + e.key + append
             })
           }else{
             void null
@@ -157,7 +131,7 @@ let Music : NextPage = props => {
       if(e.key.length > 1){
         return 
       }else{
-        item?.source?.stop(ctx.currentTime + 0.5)
+        item?.source?.source.stop(ctx.currentTime + 0.3)
         delete map[e.key]
         let [lyricIndex,highlight] = fns.getRefresh()
         if(lyricIndex == -1){
@@ -203,7 +177,8 @@ let Music : NextPage = props => {
   function freefn(){
     return <Center
     pointerEvents="none"
-    w="full" h="100vh" position="absolute" top="0" left="0" opacity={.8}>
+    mt="0"
+    w="full" h="100vh" position="fixed" top="0" left="0" opacity={.8}>
       <Heading>
         {chars.join("-")}
         <Text color="red" display="inline">{char}</Text>
@@ -247,7 +222,7 @@ let Music : NextPage = props => {
       })}
     </VStack>
   }
-  return <VStack>
+  return <VStack spacing={0}>
     <Head>
       <title>在线弹琴</title>
     </Head>
@@ -258,7 +233,7 @@ let Music : NextPage = props => {
           setLyricIndex(i=>i+1)
           setHighlight({index:0,highlight:""})
         }}
-        colorScheme={bfn(0)}>换一首</Button>
+        colorScheme={bfn(0)}>换曲</Button>
         <Button
         onClick={()=>setLyricIndex(-1)}
         colorScheme={bfn(-1)}
@@ -279,19 +254,23 @@ let Music : NextPage = props => {
         <Button
         onClick={()=>setType("other")}
         colorScheme={afn("other")}
-        >琴</Button>
+        >头痛</Button>
       </ButtonGroup>
       <MoonButton />
     </HStack>
+    <VolumeSlider volume={volume} onChange={a=>setVolume(a)} />
+    <Box height="6"></Box>
     {lyricIndex == -1 ? freefn() : ramdomfn() }
+    <Note note={note} />
     <Input
     position="fixed"
     zIndex="docked"
     w="100px"
     variant="filled"
     value="Click me"
+    onChange={()=>void 0}
     _focus={{opacity:.5}}
-    top="20"
+    top="40"
     left="sm"
     size="xs"
     opacity={1} display={["block","none"]} ></Input>

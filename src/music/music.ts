@@ -2,18 +2,19 @@
 export let actx = typeof window == "undefined" ? null as any as AudioContext : new AudioContext() 
 export type IType = "bayinhe" | "dagangqin" | "guzheng" | "other"
 export async function loadMusicBox(ctx=actx,type:IType="bayinhe"){
-  let {default:files} = await import("src/0100_FluidR3_GM_sf2_file.js")
+  let {default:files} = await import("src/music/0100_FluidR3_GM_sf2_file.js")
   if(type == "dagangqin"){
-    let {default:files1} = await import("src/dagangqin.js")
+    let {default:files1} = await import("src/music/dagangqin.js")
     files = files1
   }else if(type == "other"){
-    let {default:files1} = await import("src/0090_JCLive_sf2_file.js")
-    files = files1
+    // let {default:files1} = await import("src/music/0090_JCLive_sf2_file.js")
+    // files = files1
+    return []
   }else if(type == "guzheng"){
-    let {default:files1} = await import("src/guzheng.js")
+    let {default:files1} = await import("src/music/guzheng.js")
     files = files1
   }else{
-    void null
+    return []
   }
   type Zone = Omit<typeof files["zones"][0],"file"> & {
     buffer : AudioBuffer,
@@ -32,7 +33,9 @@ export async function loadMusicBox(ctx=actx,type:IType="bayinhe"){
   return zones
 }
 type Zone = Awaited<ReturnType<typeof loadMusicBox>>[0]
-export function playWave(ctx=actx,zones:Zone[],key:number){
+
+export function createWave(ctx=actx,zones:Zone[],key:number){
+  
   let zone = zones.find(a=>{
     return a.keyRangeLow <= key && a.keyRangeHigh + 1 >= key
   })
@@ -53,11 +56,19 @@ export function playWave(ctx=actx,zones:Zone[],key:number){
     if(zone.ahdsr){
       gain.gain.linearRampToValueAtTime(.5,t+1.5)
       gain.gain.linearRampToValueAtTime(0,t+3)
+    }else{
+      void null
     }
-    source.connect(gain).connect(ctx.destination)
-    source.start(t)
-    return source
+    let audioNode = source.connect(gain)
+    return {source,audioNode}
   }else{
-    void null
+    // 纯振荡器
+    let o = ctx.createOscillator()
+    o.type="sine"
+    o.frequency.setValueAtTime(key*10,ctx.currentTime)
+    let g = ctx.createGain()
+    g.gain.setValueAtTime(1,ctx.currentTime)
+    g.gain.linearRampToValueAtTime(.0,ctx.currentTime+1)
+    return {source:o,audioNode:o.connect(g)}
   }
 }
