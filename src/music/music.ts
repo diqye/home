@@ -1,6 +1,6 @@
 
 export let actx = typeof window == "undefined" ? null as any as AudioContext : new AudioContext() 
-export type IType = "bayinhe" | "dagangqin" | "guzheng" | "other"
+export type IType = "bayinhe" | "dagangqin" | "guzheng" | "other" | "woodblock"
 export async function loadMusicBox(ctx=actx,type:IType="bayinhe"){
   let {default:files} = await import("src/music/0100_FluidR3_GM_sf2_file.js")
   if(type == "dagangqin"){
@@ -13,8 +13,12 @@ export async function loadMusicBox(ctx=actx,type:IType="bayinhe"){
   }else if(type == "guzheng"){
     let {default:files1} = await import("src/music/guzheng.js")
     files = files1
+  }else if(type == "woodblock"){
+    let {default:files1} = await import("src/music/woodblocks.js")
+    files = files1
   }else{
-    return []
+    // 默认是八音盒
+    void 0
   }
   type Zone = Omit<typeof files["zones"][0],"file"> & {
     buffer : AudioBuffer,
@@ -48,8 +52,8 @@ export function createWave(ctx=actx,zones:Zone[],key:number){
     source.playbackRate.setValueAtTime(playbackrate,t)
     if(zone.loopEnd - zone.loopStart > 10){
       source.loop = true
-      source.loopStart = (zone.loopStart / zone.sampleRate) // * playbackrate
-      source.loopEnd = (zone.loopEnd / zone.sampleRate) // * playbackrate
+      source.loopStart = (zone.loopStart / zone.sampleRate) 
+      source.loopEnd = (zone.loopEnd / zone.sampleRate) 
     }
     let gain = ctx.createGain()
     gain.gain.setValueAtTime(1,t)
@@ -65,7 +69,8 @@ export function createWave(ctx=actx,zones:Zone[],key:number){
     // 纯振荡器
     let o = ctx.createOscillator()
     o.type="sine"
-    o.frequency.setValueAtTime(key*10,ctx.currentTime)
+    let b = 261.6*Math.pow(2,(key-60)/12)
+    o.frequency.setValueAtTime(b,ctx.currentTime)
     let g = ctx.createGain()
     g.gain.setValueAtTime(1,ctx.currentTime)
     g.gain.linearRampToValueAtTime(.0,ctx.currentTime+1)

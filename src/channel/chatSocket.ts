@@ -33,52 +33,27 @@ export function doName(){
     return myid
   }
 }
-let gws = null as WebSocket | null
-let cannelled = false
-let cannelledTimmer = null as any
-export function cancelGlobal(){
-  clearTimeout(cannelledTimmer)
-  cannelled = true
-  gws?.close()
-}
-type ConnectionState = "online" | "offline" | "done"
-export function chatForChannel(chatName:string,onStateChange:(s:ConnectionState)=>void,onMessage:Events["message"],retry=0){
+
+type ConnectionState = number
+export function chatForChannel(chatName:string,onStateChange:(s:ConnectionState)=>void,onMessage:Events["message"]){
   let protocol = location.protocol == "http:" ? "ws:" : "wss:"
+
   return chat(`${protocol}//${location.host}/api/chat/channel/${chatName}`,{
     open(ws,e){
-      gws = ws
-      cannelled = false
       ws.send(doName())
-      onStateChange("online")
+      onStateChange(ws.readyState)
     },
     error(ws,e){
-      console.error(e)
-      // alert('An error appear from WebSocket')
+      onStateChange(ws.readyState)
     },
     message: onMessage,
     close(ws,e){
-      if(retry == 60){
-        onStateChange("done")
-        alert("Retry over times")
-      } else if([1006].indexOf(e.code) != -1 && cannelled == false) {
-        onStateChange("offline")
-        if(navigator.onLine){
-          cannelledTimmer =  setTimeout(()=>{
-            chatForChannel(chatName,onStateChange,onMessage,retry + 1)
-          },2000)
-        }else{
-          cannelledTimmer = setTimeout(()=>{
-            chatForChannel(chatName,onStateChange,onMessage,retry)
-          },3000)
-        }
+      onStateChange(ws.readyState)
+      if([1006].indexOf(e.code) != -1) {
       }else if([1000].indexOf(e.code) != -1){
-        onStateChange("done")
         void null
       }else{
-        onStateChange("done")
       }
-    
-      console.log("WebSocket-close",e)
     }
   })
 }

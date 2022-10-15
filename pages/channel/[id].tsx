@@ -1,11 +1,11 @@
 import { Stack,chakra,useColorMode,Text, Box, IconButton, ChakraProps, Center, useColorModeValue, Tooltip, useToken, useTheme, VStack, BoxProps, TextProps, TextareaProps, useClipboard, useToast, UseModalProps, Button, Input, useDisclosure } from '@chakra-ui/react'
 import type { NextPage } from 'next'
 import {CopyIcon, MoonIcon,SmallAddIcon,SunIcon} from '@chakra-ui/icons'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import FlexInputAutomatically from '@c/FlexInputAutomatically'
 import Sending from "src/icons/Sending"
 import { useRouter } from 'next/router'
-import { cancel, cancelGlobal, chatForChannel, doName } from 'src/channel/chatSocket'
+import { cancel, chatForChannel, doName } from 'src/channel/chatSocket'
 import {
   Modal,
   ModalOverlay,
@@ -16,6 +16,7 @@ import {
   ModalCloseButton,
 } from '@chakra-ui/react'
 import MoonButton from '@c/MoonButton'
+import Head from 'next/head'
 
 type SwitchChannelProps = {
   isOpen: boolean,
@@ -138,7 +139,7 @@ let Message : React.FC<MessageProps> = props => {
   </VStack>
 }
 let isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-const TextS : NextPage = () => {
+const TextS : NextPage<{id:string}> = ({id}) => {
   let router = useRouter()
   
   let [message,setMessage] = useState("")
@@ -211,7 +212,7 @@ const TextS : NextPage = () => {
   let [uri,setUri] = useState(router.pathname)
   let { hasCopied, onCopy } = useClipboard(uri)
   type ConnectionState = Parameters<Parameters<typeof chatForChannel>[1]>[0]
-  let [connectionState,setConnectionState] = useState("online" as ConnectionState)
+  let [connectionState,setConnectionState] = useState(0)
   useEffect(()=>{
     setUri(location.href)
   },[router.query.id])
@@ -226,7 +227,7 @@ const TextS : NextPage = () => {
       onMessageFromServer(JSON.parse(e.data),ws)
     })
     return ()=>{
-      cancelGlobal()
+      cancel(ws)
     }
   },[router.query.id])
   useEffect(()=>{
@@ -247,6 +248,11 @@ const TextS : NextPage = () => {
   let redScheme = useColorModeValue("red.500","red.300")
   return (
     <BoxOut>
+      <Head>
+        <title>{id + " 频道 | 第七页"}</title>
+        <meta name="keywords" content="聊天频道" />
+        <meta name="description" content="随时随地不需要登陆救可以用的聊天频道" />
+      </Head>
       <SwitchChannel isOpen={isOpen} onClose={onClose} onOk={onConfirm} />
       <Stack
       direction={"row"}
@@ -263,10 +269,7 @@ const TextS : NextPage = () => {
         <Text fontSize={"xs"} ml="px">
           ({members.length}人在线)
         </Text>
-        { connectionState == "online" ? void 0 
-        : connectionState == "offline" ? <Text fontSize="xs" color={redScheme}>你已离线,正在重新建立连接</Text>
-        : <Text color={redScheme} fontSize="xs" >你已离线</Text>
-        }
+        {connectionState == 3 ? <Text colorScheme="red" fontSize="xs">您已断开链接</Text> : <Text fontSize="xs" colorScheme="green">连接正常{connectionState}</Text>}
         <Stack direction="row" flexGrow={1} justifyContent="flex-end">
           <Tooltip label="复制分享">
             <IconButton 
@@ -317,4 +320,7 @@ const TextS : NextPage = () => {
   )
 }
 
+TextS.getInitialProps = async (ctx) => {
+  return {id:ctx.query.id as string}
+}
 export default TextS

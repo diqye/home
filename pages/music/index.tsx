@@ -1,9 +1,10 @@
 import MoonButton from "@c/MoonButton";
+import MyMusicFooter from "@c/MyFooter";
 import {Box, Button, ButtonGroup, Center, Heading,HStack,Input,Slider,SliderFilledTrack,SliderMark,SliderThumb,SliderTrack,Text, TextProps, Tooltip, VStack } from "@chakra-ui/react";
 import { NextPage } from "next";
 import Head from "next/head";
 import { FC, useEffect, useState } from "react";
-import { useCurrent } from "src/kit";
+import { isMobile, useCurrent } from "src/kit";
 import { actx, IType, loadMusicBox, createWave } from "src/music/music";
 import {lyrics,keymap} from "src/music/notes"
 
@@ -64,9 +65,7 @@ let Music : NextPage = props => {
   let [volume,setVolume] = useState(50)
   let [note,setNote] = useState("")
   let fns = useCurrent({
-    getVolume(){
-      return volume * 2 / 100
-    },
+    volume,
     getRefresh(){
       return [lyricIndex,highlight] as const
     },
@@ -91,7 +90,7 @@ let Music : NextPage = props => {
           let node = createWave(ctx,zones, note[0])
           map[e.key].source = node
           let gain = ctx.createGain()
-          gain.gain.setValueAtTime(fns.getVolume(),ctx.currentTime)
+          gain.gain.setValueAtTime(fns.volume/100*2,ctx.currentTime)
           node?.audioNode.connect(gain)
           gain.connect(ctx.destination)
           node?.source.start(ctx.currentTime)
@@ -131,7 +130,8 @@ let Music : NextPage = props => {
       if(e.key.length > 1){
         return 
       }else{
-        item?.source?.source.stop(ctx.currentTime + 0.3)
+        let delay = isMobile() ? .7 : .3
+        item?.source?.source.stop(ctx.currentTime + delay)
         delete map[e.key]
         let [lyricIndex,highlight] = fns.getRefresh()
         if(lyricIndex == -1){
@@ -222,9 +222,11 @@ let Music : NextPage = props => {
       })}
     </VStack>
   }
-  return <VStack spacing={0}>
+  return <VStack spacing={0} minH="100vh">
     <Head>
-      <title>在线弹琴</title>
+      <title>八音盒/古筝模拟器</title>
+      <meta name="keywords" content="八音盒模拟器,古琴模拟器,木鱼模拟器,钢琴模拟器" />
+      <meta name="description" content="在线演奏音乐，包含多种乐器模拟器" />
     </Head>
     <HStack justify="flex-end" w={["full","md"]} p="4" spacing={["0","1"]}>
       <ButtonGroup size="sm" isAttached>
@@ -274,6 +276,7 @@ let Music : NextPage = props => {
     left="sm"
     size="xs"
     opacity={1} display={["block","none"]} ></Input>
+    <MyMusicFooter />
   </VStack>
 }
 

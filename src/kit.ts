@@ -1,10 +1,54 @@
+import { ThemeComponentProps, useColorModeValue } from "@chakra-ui/react"
 import { useRef } from "react"
 
 
-export function useCurrent<T extends Record<string,Function>>(fns:T):T{
+export function useCurrent<T extends Record<string,any>>(fns:T):T{
   let ref = useRef(fns)
   for(let key in fns){
     ref.current[key] = fns[key]
   }
   return ref.current
+}
+let detectedMobile = false
+let detectedR = false
+export function isMobile() {
+  if(detectedMobile){
+    return detectedR
+  }
+  var userAgentInfo = navigator.userAgent;
+  var mobileAgents = [ "Android", "iPhone", "SymbianOS", "Windows Phone", "iPad","iPod"];
+  var mobile_flag = false;
+  //根据userAgent判断是否是手机
+  for (var v = 0; v < mobileAgents.length; v++) {
+      if (userAgentInfo.indexOf(mobileAgents[v]) > 0) {
+          mobile_flag = true;
+          break;
+      }
+  }
+   var screen_width = window.screen.width;
+   var screen_height = window.screen.height;   
+   //根据屏幕分辨率判断是否是手机
+   if(screen_width < 500 && screen_height < 800){
+       mobile_flag = true;
+   }
+   detectedMobile = true
+   detectedR = mobile_flag
+   return mobile_flag;
+}
+
+type ColorScheme = ThemeComponentProps["colorScheme"]
+export function cm(color:ColorScheme){
+  let [light,dark] = cmv(color)
+  return useColorModeValue(light,dark)
+}
+export function cmv(color:ColorScheme):[string,string]{
+  let light,dark
+  if(color == "gray"){
+    light = "gray"
+    dark = "whiteAlpha.900"
+  }else{
+    light = color + ".600"
+    dark = color + ".200"
+  }
+  return [light,dark]
 }
