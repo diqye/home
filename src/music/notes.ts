@@ -49,7 +49,21 @@ function getNote(major:typeof notes[number],doremi:Doremi){
 }
 export function getMusicalKey(musicalScale:number,major:typeof notes[number],doremi:Doremi){
   let [note,n] = getNote(major,doremi)
-  return gk(note,musicalScale+n)
+  musicalScale = musicalScale + n
+  let i = notes.indexOf(note)
+  let next
+  let last
+  if(i == 0){
+    next = gk(notes[1],musicalScale)
+    last = gk("B",musicalScale-1)
+  }else if(i==notes.length - 1){
+    next = gk("C",musicalScale + 1)
+    last = gk("A#",musicalScale)
+  }else{
+    next = gk(notes[i+1],musicalScale)
+    last = gk(notes[i-1],musicalScale)
+  }
+  return gk(note,musicalScale).concat(next).concat(last) as [number,string,number,string,number,string]
 }
 export let keymap = {
   "1":gk("C",3),"!":gk("C#",3),

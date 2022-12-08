@@ -151,7 +151,6 @@ const TextS : NextPage<{id:string}> = ({id}) => {
   let toast = useToast()
   
   function onMessageFromServer(data:{tag:string,contents:any},ws:WebSocket){
-    console.log("onMessage",data)
     if(data.tag == "CInitialInfo"){
       setChatWS(ws)
       setList(data.contents.recentMessages.reverse())
@@ -216,18 +215,53 @@ const TextS : NextPage<{id:string}> = ({id}) => {
   useEffect(()=>{
     setUri(location.href)
   },[router.query.id])
+  let [delay,setDelay] = useState(0)
   useEffect(()=>{
     if(router.query.id == null) return
     setMe(doName()) 
+    class Ping {
+      private ok = (a:any) => void 0
+      pending(){
+        return Promise.race([new Promise<any>(ok=>setTimeout(()=>ok("timeout"),3000)),new Promise((ok:any)=>this.ok = ok)])
+      }
+      endPing(){
+        this.ok(null)
+      }
+    }
+    let pingA = new Ping()
     let ws = chatForChannel(router.query.id as string,
+      (ws:WebSocket) => {
+        let count = 1
+        async function ping(){
+          if(ws.readyState !== ws.OPEN) return
+          let time = Date.now()
+          ws.send(JSON.stringify({tag:"CPing",contents:count + ""}))
+          count ++ 
+          let r = await pingA.pending()
+          if( r == "timeout"){
+            setDelay(-1)
+            cancel(ws,3002)
+          }else{
+            setDelay(Date.now() - time)
+            await new Promise(ok=>setTimeout(ok,10*1000))
+            ping()
+          }
+        }
+        setTimeout(ping,5*1000)
+      },
       state=>{
         setConnectionState(state)
       },
       (ws,e)=>{
-      onMessageFromServer(JSON.parse(e.data),ws)
+        let data = JSON.parse(e.data)
+        if(data.tag == "CPing"){
+          pingA.endPing()
+        }else{
+          onMessageFromServer(data,ws)
+        }
     })
     return ()=>{
-      cancel(ws)
+      cancel(ws.ws)
     }
   },[router.query.id])
   useEffect(()=>{
@@ -251,7 +285,7 @@ const TextS : NextPage<{id:string}> = ({id}) => {
       <Head>
         <title>{id + " 频道 | 第七页"}</title>
         <meta name="keywords" content="聊天频道" />
-        <meta name="description" content="随时随地不需要登陆救可以用的聊天频道" />
+        <meta name="description" content="随时随地不需要登陆就可以用的聊天频道" />
       </Head>
       <SwitchChannel isOpen={isOpen} onClose={onClose} onOk={onConfirm} />
       <Stack
@@ -269,7 +303,7 @@ const TextS : NextPage<{id:string}> = ({id}) => {
         <Text fontSize={"xs"} ml="px">
           ({members.length}人在线)
         </Text>
-        {connectionState == 3 ? <Text colorScheme="red" fontSize="xs">您已断开链接</Text> : <Text fontSize="xs" colorScheme="green">连接正常{connectionState}</Text>}
+        {connectionState != 1 ? <Text colorScheme="red" fontSize="xs">Disconnect:{connectionState}</Text> : <Text fontSize="xs" colorScheme="green">{delay}ms</Text>}
         <Stack direction="row" flexGrow={1} justifyContent="flex-end">
           <Tooltip label="复制分享">
             <IconButton 

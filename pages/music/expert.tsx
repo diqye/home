@@ -1,10 +1,13 @@
 import MoonButton from "@c/MoonButton";
 import MyMusicFooter from "@c/MyFooter";
-import { Text,HStack, Select, VStack, Divider, Heading, ButtonGroup, Button } from "@chakra-ui/react";
+import { BellIcon } from "@chakra-ui/icons";
+import { Text,HStack, Select, VStack, Divider, Heading, ButtonGroup, Button, Slider, SliderTrack, SliderFilledTrack, Box, SliderThumb, Kbd } from "@chakra-ui/react";
 import { NextPage } from "next";
 import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
+import { VolumeIcon } from "src/icons/Icons";
 import { isMobile, useCurrent } from "src/kit";
+import Autoplay, { canon } from "src/music/AutoPlay";
 import { actx, createWave, IType, loadMusicBox } from "src/music/music";
 import { expertKeymap, getExpert, gk, notes } from "src/music/notes";
 
@@ -15,8 +18,16 @@ let ExpertMusic : NextPage = props =>{
   let [instrument,setInstrument] = useState("bayinhe" as IType)
   let [keyOnPiano,setKeyOnPiano] = useState("")
   let [actives,setActives] = useState([] as string[])
+  let gainRef = useRef<GainNode>()
+  let [volume,setVolumeInner] = useState(0.25)
+  function setVolume(v:number){
+    let a = v/100
+    gainRef.current?.gain.setValueAtTime(a,0)
+    setVolumeInner(a)
+  }
   let state = useCurrent({
-    aInMusicalScale,major
+    aInMusicalScale,
+    major
   })
   
   let crosingTimeRef = useRef({
@@ -30,9 +41,34 @@ let ExpertMusic : NextPage = props =>{
   function noteUp(key:string){
     setActives(xs=>xs.filter(x=>x!=key))
   }
+  async function playCannon(){
+    let itt = await loadMusicBox(actx,instrument)
+    await actx.resume()
+    let autoPlay = new Autoplay(actx,gainRef.current||actx.createGain()) 
+    autoPlay.setBuffer(itt)
+    let paN = 60
+    let startTime = actx.currentTime
+    let major = "C" as const
+    for(let xs of canon){
+      if(typeof xs == "number"){
+        paN = xs
+        continue
+      }
+      let pTime = startTime
+      xs.forEach((a:any)=>{
+        let at = autoPlay.playNotes(paN,major,a,startTime)
+        pTime = Math.max(at,pTime)
+      })
+      startTime = pTime
+    }
+  }
   useEffect(()=>{
+    actx.resume()
     let bufP = loadMusicBox(actx,instrument)
     let map = {} as Record<string,{indown:boolean,source?:ReturnType<typeof createWave>}>
+    gainRef.current = actx.createGain()
+    let gain = gainRef.current
+    gain.gain.setValueAtTime(.25,0)
     let keydownfn = (e:KeyboardEvent) =>{
       if(e.key.length > 1 || map[e.key]?.indown){
         return 
@@ -43,12 +79,20 @@ let ExpertMusic : NextPage = props =>{
         bufP.then(zones=>{
           let note = getExpert(state.aInMusicalScale,state.major,key)
           if(note == null) return
-          let node = createWave(actx,zones, note[0])
+          let note1 : [number,string]
+          if(e.shiftKey){
+            note1 = [note[2],note[3]]
+          }else if(e.ctrlKey){
+            note1 = [note[4],note[5]]
+          }else{
+            note1 = [note[0],note[1]]
+          }
+          let node = createWave(actx,zones, note1[0])
           map[key].source = node
-          node?.audioNode.connect(actx.destination)
+          node?.audioNode.connect(gain).connect(actx.destination)
           node?.source.start(actx.currentTime)
           node?.source.stop(actx.currentTime+5)
-          noteDown(note[1],key)
+          noteDown(note1[1],key)
           node?.source.addEventListener("ended",()=>{
             noteUp(key)
           })
@@ -73,6 +117,11 @@ let ExpertMusic : NextPage = props =>{
       keydownfn({key} as KeyboardEvent)
     }
     crosingTimeRef.current.keyup = (key:string)=>{
+      gtag("event","click",{
+        event_category:"note",
+        event_label: key,
+        value:1
+      })
       keyupfn({key} as KeyboardEvent)
     }
     document.addEventListener("keydown",keydownfn)
@@ -137,7 +186,22 @@ let ExpertMusic : NextPage = props =>{
       </Select>
       <MoonButton />
     </HStack>
-    <Heading colorScheme="pink" userSelect="none">♫{keyOnPiano}</Heading>
+    <Heading colorScheme="pink" userSelect="none">
+      ♫{keyOnPiano}
+    </Heading>
+    <HStack w={"sm"} color="tomato">
+      <VolumeIcon ratio={volume} />
+      <Slider onChange={setVolume} aria-label='slider-ex-4' defaultValue={25}>
+        <SliderTrack bg='red.100'>
+          <SliderFilledTrack bg='tomato' />
+        </SliderTrack>
+        <SliderThumb boxSize={3} bg="tomato">
+          {/* <Box color="tomato" mt="-4px">
+            <VolumeIcon ratio={volume} />
+          </Box> */}
+        </SliderThumb>
+      </Slider>
+    </HStack>
     <VStack w="full" spacing={0}>
       {expertKeymap.map((a,i)=>lineKeys(a,aInMusicalScale,i,major,actives,{
         down(key:string) {
@@ -146,6 +210,8 @@ let ExpertMusic : NextPage = props =>{
         up(key:string) {crosingTimeRef.current.keyup(key)}
       }))}
     </VStack>
+    <Text colorScheme="gray" w="sm">注：按住<Kbd>Shift</Kbd>升半音，按住<Kbd>Ctrl</Kbd>降半音</Text>
+    <Button onClick={playCannon}>播放卡农</Button>
     <MyMusicFooter />
   </VStack>
 }
@@ -185,8 +251,12 @@ function lineKeys(keys:string[],scale:number,i:number,major:Note,
   return <ButtonGroup
   colorScheme={i==2?"blue":undefined}
   variant="solid"
-  isAttached key={keys[0]}>
-    <Button w="40px" h="60px" isDisabled>{name}</Button>
+  isAttached
+  key={name+"group"}
+  >
+    <Button w="40px" h="60px" isDisabled
+    key={name}
+    >{name}</Button>
     {keys.map((key,i)=><Button
       w="50px"
       h="60px"
@@ -195,8 +265,8 @@ function lineKeys(keys:string[],scale:number,i:number,major:Note,
       {...keyEvents(key)}
       userSelect="none"
       key={key}>
-        <Text >{key.toUpperCase()}</Text>
-        <Text colorScheme="teal" fontSize="sm">{doremiLabel[i]}</Text>
+        <Text key={key+"1"}>{key.toUpperCase()}</Text>
+        <Text key={key+"2"} colorScheme="teal" fontSize="sm">{doremiLabel[i]}</Text>
       </Button>)}
   </ButtonGroup>
 }

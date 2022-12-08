@@ -3,6 +3,7 @@ import type { AppProps } from 'next/app'
 import { ChakraProvider, defineStyle, defineStyleConfig, StyleFunctionProps, ThemeComponents} from '@chakra-ui/react'
 import { extendTheme, type ThemeConfig } from '@chakra-ui/react'
 import Head from 'next/head'
+import Script from 'next/script'
 
 const config: ThemeConfig = {
   initialColorMode: "light",
@@ -50,13 +51,27 @@ const components: ThemeComponents = {
 }
 const theme = extendTheme({ config, components })
 
+function GoogleAnalytics(){
+  return <>
+    <Head>
+      <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    </Head>
+    {/*  Google tag (gtag.js) */}
+    <Script strategy="afterInteractive"  src="https://www.googletagmanager.com/gtag/js?id=G-S3464XHW9P"></Script>
+    <Script dangerouslySetInnerHTML={{__html:`
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-S3464XHW9P',{ 'transport_type': 'beacon'});
+    `}}>
+    </Script>
+  </>
+}
 function MyApp({ Component, pageProps }: AppProps) {
   return (
   <ChakraProvider theme={theme}>
+    <GoogleAnalytics />
      <Component {...pageProps} />
-     <Head>
-      <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
-     </Head>
   </ChakraProvider>
   )
 }

@@ -37,7 +37,7 @@ export function isMobile() {
 }
 
 type ColorScheme = ThemeComponentProps["colorScheme"]
-export function cm(color:ColorScheme){
+export function useCS(color:ColorScheme){
   let [light,dark] = cmv(color)
   return useColorModeValue(light,dark)
 }
@@ -51,4 +51,40 @@ export function cmv(color:ColorScheme):[string,string]{
     dark = color + ".200"
   }
   return [light,dark]
+}
+
+
+export type MyDataView = ReturnType<typeof createMyDataView>
+export function createMyDataView(buf:ArrayBuffer){
+  let offset = 0
+  let dv = new DataView(buf)
+  let byteMap = {
+    "uint8":[1,()=>dv.getUint8(offset)],
+    "int8":[1,()=>dv.getInt8(offset)],
+    "int16":[2,()=>dv.getInt16(offset,true)],
+    "float32":[4,()=>dv.getFloat32(offset,true)]
+  } as const
+  type Key =  keyof typeof byteMap
+  type GetR<a extends Key> = ReturnType<Pick<typeof byteMap,a>[a][1]>
+  let result =  {
+    skip(n:number){
+      offset += n 
+    },
+    isEnd(){
+      return offset >= buf.byteLength
+    },
+    tryGet<a extends Key>(type:a):GetR<a>{
+      let [_,get1] = byteMap[type]
+      let r = get1()
+      return r as any
+    },
+    get<a extends Key>(type:a):GetR<a>{
+      let [n,get1] = byteMap[type]
+      let r = get1()
+      result.skip(n)
+      return r as any
+    }
+  }
+
+  return result
 }

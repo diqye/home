@@ -9,6 +9,7 @@ export async function loadMusicBox(ctx=actx,type:IType="bayinhe"){
   }else if(type == "other"){
     // let {default:files1} = await import("src/music/0090_JCLive_sf2_file.js")
     // files = files1
+    // 振荡器走这里
     return []
   }else if(type == "guzheng"){
     let {default:files1} = await import("src/music/guzheng.js")
@@ -38,7 +39,7 @@ export async function loadMusicBox(ctx=actx,type:IType="bayinhe"){
 }
 type Zone = Awaited<ReturnType<typeof loadMusicBox>>[0]
 
-export function createWave(ctx=actx,zones:Zone[],key:number){
+export function createWave(ctx=actx,zones:Zone[],key:number,startTime?:number){
   
   let zone = zones.find(a=>{
     return a.keyRangeLow <= key && a.keyRangeHigh + 1 >= key
@@ -46,7 +47,7 @@ export function createWave(ctx=actx,zones:Zone[],key:number){
   if(zone){
     let tune = zone.originalPitch - 100.0 * zone.coarseTune - zone.fineTune
     let playbackrate = 1.0 * Math.pow(2,(100*key - tune) / 1200.0) // + zone.anchor
-    let t  = ctx.currentTime
+    let t  = startTime?startTime:ctx.currentTime
     let source = ctx.createBufferSource()
     source.buffer = zone.buffer
     source.playbackRate.setValueAtTime(playbackrate,t)
@@ -67,13 +68,16 @@ export function createWave(ctx=actx,zones:Zone[],key:number){
     return {source,audioNode}
   }else{
     // 纯振荡器
+    // sin波形模拟频率
+    // 261.6 为标准fa音
+    let t  = startTime?startTime:ctx.currentTime
     let o = ctx.createOscillator()
     o.type="sine"
     let b = 261.6*Math.pow(2,(key-60)/12)
-    o.frequency.setValueAtTime(b,ctx.currentTime)
+    o.frequency.setValueAtTime(b,t)
     let g = ctx.createGain()
-    g.gain.setValueAtTime(1,ctx.currentTime)
-    g.gain.linearRampToValueAtTime(.0,ctx.currentTime+1)
+    g.gain.setValueAtTime(1,t)
+    g.gain.linearRampToValueAtTime(.0,t+1)
     return {source:o,audioNode:o.connect(g)}
   }
 }
