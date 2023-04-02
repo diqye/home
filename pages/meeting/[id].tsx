@@ -33,10 +33,12 @@ let MeetingHeader : FC<MeetingHeaderProps> = props => {
 
     function clickName(){
         let newName = prompt("输入您的名字",props.name) || ""
-        if(newName.length > 2){
+        if(newName == ""){
+            return 
+        }else if(newName.length > 2 && newName.length < 50){
             props.onName(newName)
         }else{
-            alert("名字字符太少")
+            alert("字符必须大于2个并且少于50个")
         }
     }
     return <HStack bg="teal.100" width="full" padding="4" paddingLeft="16" color="gray.500">
@@ -68,6 +70,17 @@ type MeetingListProps = {
     // me: MeetingListPropsUser,
     // others: MeetingListPropsUser[]
 }
+function drawInitialGreen(canvas:HTMLCanvasElement){
+    let ctx = canvas.getContext("2d")
+    function draw(color:string){
+        if(ctx == null) return
+        ctx.rect(0,0,8,5)
+        ctx.fillStyle = color
+        ctx.fill()
+        setTimeout(()=>draw(color == "green" ? "red" : "green"),1000)
+    }
+    draw("green")
+}
 let MeetingList : FC<MeetingListProps> = props => {
     let meetingRef = useRef<Meetings>()
     let defuatStreamProvider = useRef<HTMLCanvasElement>(null)
@@ -76,15 +89,15 @@ let MeetingList : FC<MeetingListProps> = props => {
     let [currentMainIndex,setMainIndex] = useState(-2)
     let mainVideo
     if(currentMainIndex == -2){
-        mainVideo = me.stream
+        mainVideo = me
         if(others.length>0){
-            mainVideo = others[0].stream
+            mainVideo = others[0]
         }
     }else if(currentMainIndex == -1){
-        mainVideo = me.stream
+        mainVideo = me
     }else{
         let idx = others[currentMainIndex]?currentMainIndex:others.length-1
-        mainVideo = others[idx].stream
+        mainVideo = others[idx]
     }
     let router = useRouter()
     function onName(nName:string){
@@ -93,6 +106,7 @@ let MeetingList : FC<MeetingListProps> = props => {
     }
     useEffect(()=>{
         if(defuatStreamProvider.current == null) return
+        drawInitialGreen(defuatStreamProvider.current)
         if(typeof router.query.id != "string") {
             return
         }
@@ -119,23 +133,6 @@ let MeetingList : FC<MeetingListProps> = props => {
         })
         meetingRef.current.addEventListener("end-screen",e=>{
             setScreen(a=>({...a,opened:false}))
-        })
-        meetInfo.addEventListener("track",e=>{
-            if(e instanceof MyEvent){
-                // let track = e.data.track as MediaStreamTrack
-                // let userId = e.data.newUserId
-                // let other = others.find(other=>other.id == userId)
-                // if(other == null || other.stream == null) return
-                // let stream = other.stream
-                // if(track.kind == "video"){
-                //     let vtracks = stream.getVideoTracks()
-                //     vtracks.forEach(track=>stream.removeTrack(track))
-                // }else if(track.kind == "audio"){
-                //     let vtracks = stream.getAudioTracks()
-                //     vtracks.forEach(track=>stream.removeTrack(track))
-                // }
-                // stream.addTrack(e.data.track)
-            }
         })
         return () => {
             meetInfo.destory()
@@ -176,26 +173,32 @@ let MeetingList : FC<MeetingListProps> = props => {
             console.log("fullscreenchange")
             setIsScreenMode(a=>!a)
         })
+        document.addEventListener("webkitfullscreenchange",e=>{
+            console.log("webkitfullscreenchange")
+            setIsScreenMode(a=>!a)
+        })
     },[])
     function screenMode(){
         if(isScreenMode){
-            document.exitFullscreen()
-            // setIsScreenMode(false)
+            if(document.exitFullscreen) document.exitFullscreen()
+            else (document as any).webkitExitFullscreen()
         }else{
-            mainContentRef.current?.requestFullscreen()
-            // setIsScreenMode(true)
+            if(mainContentRef.current == null) return
+            let a = mainContentRef.current
+            if(a.requestFullscreen)a.requestFullscreen()
+            else (a as any).webkitRequestFullscreen()
         }
     }
     return <Stack alignItems="center" spacing="0">
         <MeetingHeader name={props.name} onName={onName}></MeetingHeader>
-        <canvas width={4} height={3} style={{border:"1px solid red",display:"none"}} ref={defuatStreamProvider}></canvas>
+        <canvas width={2} height={2} style={{border:"1px solid red",display:"none"}} ref={defuatStreamProvider}></canvas>
         <HStack w={isScreenMode?"100%":"900px"} spacing={0} boxShadow="xl" pt="4" ref={mainContentRef} >
             <Box bg="gray.300" color="white" borderRadius="lg" position="relative" borderRightRadius="none" w={isScreenMode?"calc(100% - 100px)":"800px"} height={isScreenMode?"100vh":"500px"}>
                 {/* <video  autoPlay muted width="100%"></video> */}
-                <Avatar name={me.name} size="2xl" position="absolute" top="50%" left="50%" zIndex={0} transform="translate(-50%, -50%)" />
+                <Avatar name={mainVideo?.name} size="2xl" position="absolute" top="50%" left="50%" zIndex={0} transform="translate(-50%, -50%)" />
                 <MeetingVideo
-                srcObject={mainVideo}
-                videoProps={{autoPlay:true,muted:false,style:{margin:"auto",maxWidth:"100%",maxHeight:"100%",position:"relative",zIndex:"7",width:isScreenMode?"100%":"auto"}}} />
+                srcObject={mainVideo?.stream}
+                videoProps={{autoPlay:true,muted:true,style:{margin:"auto",maxWidth:"100%",maxHeight:"100%",position:"relative",zIndex:"7",width:isScreenMode?"100%":"auto"}}} />
                 <HStack position="absolute" zIndex={10} bottom="0" w="full" pl="4">
                     <FormControl display='flex' alignItems='center' w="150px">
                         <FormLabel htmlFor='email-alerts' mb='0'>
@@ -226,7 +229,7 @@ let MeetingList : FC<MeetingListProps> = props => {
     </Stack>
 }
 function listItem(user:MeetingListPropsUser,muted:boolean = false,onClick:()=>void,selected:boolean){
-    return <Center w="full" height="62.5px" position="relative" key={user.id} cursor="pointer" onClick={onClick} shadow={selected?"2xl":"none"}>
+    return <Center w="full" height="62.5px" position="relative" key={user.id} cursor="pointer" onClick={onClick} shadow={selected?"dark-lg":"none"}>
         <Avatar name={user.name} />
         <MeetingVideo
         srcObject={user.stream}

@@ -300,6 +300,7 @@ export class Meetings extends EventTarget {
             }
         }else if(config.audio == true){
             stream = await navigator.mediaDevices.getUserMedia({audio:config.audio,video:false})
+            console.log(stream.getAudioTracks()[0].enabled,"audioTrack status")
             stream.addTrack(this.myself.whiteVideoStrack)
         }else{
             stream = new MediaStream([this.myself.whiteVideoStrack,this.myself.whiteAudioStrack])
