@@ -211,10 +211,10 @@ let OrderDialog : FC<OrderDialogProps> = props =>{
       <ModalBody pb={6} >
       <FormControl as='fieldset' isRequired>
         <FormLabel as='legend'>开仓方向</FormLabel>
-        <RadioGroup value={orderType} onChange={v=>setOrderType(parseInt(v))}>
+        <RadioGroup value={orderType+''} onChange={v=>setOrderType(parseInt(v))}>
           <HStack spacing='6'>
-            <Radio value={1}>做多</Radio>
-            <Radio value={0}>做空</Radio>
+            <Radio value={1 + ''}>做多</Radio>
+            <Radio value={0 + ''}>做空</Radio>
           </HStack>
         </RadioGroup>
       </FormControl>

@@ -283,9 +283,9 @@ const TextS : NextPage<{id:string}> = ({id}) => {
   return (
     <BoxOut>
       <Head>
-        <title>{id + " 频道 | 第七页"}</title>
-        <meta name="keywords" content="聊天频道" />
-        <meta name="description" content="随时随地不需要登陆就可以用的聊天频道" />
+        <title>{id + " 频道 | 在线数据传输助手"}</title>
+        <meta name="keywords" content="在线文件传输助手" />
+        <meta name="description" content="永远绿色，永无登陆，文件传输" />
       </Head>
       <SwitchChannel isOpen={isOpen} onClose={onClose} onOk={onConfirm} />
       <Stack
@@ -305,10 +305,10 @@ const TextS : NextPage<{id:string}> = ({id}) => {
         </Text>
         {connectionState != 1 ? <Text colorScheme="red" fontSize="xs">Disconnect:{connectionState}</Text> : <Text fontSize="xs" colorScheme="green">{delay}ms</Text>}
         <Stack direction="row" flexGrow={1} justifyContent="flex-end">
-          <Tooltip label="复制分享">
+          <Tooltip label="复制链接发送给朋友即可共享">
             <IconButton 
             onClick={onCopy}
-            aria-label='分享' size={"sm"} icon={<CopyIcon />} />
+            aria-label='复制链接发送给朋友即可共享' size={"sm"} icon={<CopyIcon />} />
           </Tooltip>
           <IconButton
           title="更换一个频道"

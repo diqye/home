@@ -1,10 +1,12 @@
 let config= {
-  siteUrl: "http://www.diqye.com",
+  siteUrl: "https://www.diqye.com",
   generateRobotsTxt:true,
   sitemapSize: 1000,
   async additionalPaths(config){
     return [{
-      loc: "/channel/home"
+      loc: "/channel/publick"
+    },{
+      loc: "/meeting/publick"
     }]
   }
 }

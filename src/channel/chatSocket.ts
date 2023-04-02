@@ -1,5 +1,4 @@
 
-// TODO 服务限制每个channel的最近消息数量
 type Events = {
   close: (ws:WebSocket,e:CloseEvent) => any,
   error?: (ws:WebSocket,e:Event) => any,

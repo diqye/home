@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: http://www.diqye.com
+Host: https://www.diqye.com
 
 # Sitemaps
-Sitemap: http://www.diqye.com/sitemap.xml
+Sitemap: https://www.diqye.com/sitemap.xml

@@ -136,9 +136,9 @@ let ExpertMusic : NextPage = props =>{
   minH="100vh"
    >
     <Head>
-      <title> 钢琴模拟器 - do re mi | 第七页 </title>
-      <meta name="keywords" content="八音盒模拟器,古琴模拟器,木鱼模拟器,钢琴模拟器" />
-      <meta name="description" content="在线演奏音乐，包含多种乐器模拟器" />
+      <title> 钢琴在线演奏 - do re mi </title>
+      <meta name="keywords" content="八音盒在线演奏,古琴在线演奏,木鱼在线演奏,钢琴在线演奏" />
+      <meta name="description" content="专业在线演奏乐器；乐器模拟器" />
     </Head>
     <HStack w={["full","2xl"]} pt="4">
       <Text>大调:</Text>

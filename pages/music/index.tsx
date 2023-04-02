@@ -224,7 +224,7 @@ let Music : NextPage = props => {
   }
   return <VStack spacing={0} minH="100vh">
     <Head>
-      <title>八音盒/古筝模拟器</title>
+      <title>简易版在线演奏乐器</title>
       <meta name="keywords" content="八音盒模拟器,古琴模拟器,木鱼模拟器,钢琴模拟器" />
       <meta name="description" content="在线演奏音乐，包含多种乐器模拟器" />
     </Head>
