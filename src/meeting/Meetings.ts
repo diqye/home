@@ -50,7 +50,16 @@ type CMsg<T=any> = {
     c_receiver: string,
     c_sender: string
 }
-
+function getWhiteAudioStream(){
+    let ctx = new AudioContext()
+    let streamDestination = ctx.createMediaStreamDestination()
+    // let os = ctx.createOscillator()
+    // os.type = "sine"
+    // os.frequency.setValueAtTime(261,ctx.currentTime)
+    // os.connect(streamDestination)
+    // os.start()
+    return streamDestination.stream
+}
 export class Meetings extends EventTarget {
     private ws?: WebSocket
     private users: User[]=[]
@@ -69,31 +78,47 @@ export class Meetings extends EventTarget {
         let chatName = "@meeting@" + chatName1
         let stream = whiteProvider.captureStream()
         let videoTrack = stream.getTracks()[0]
-        navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(stream=>{
-            let audioTrack = stream.getAudioTracks()[0]
-            audioTrack.enabled = false
-            this.ws = new WebSocket(`${protocol}//${location.host}/api/chat/channel/${chatName}`)
-            let id = doName()
-            this.myself = {
-                id,
-                name,
-                whiteAudioStrack: audioTrack,
-                whiteVideoStrack: videoTrack,
-                currentAudioStrack: audioTrack,
-                currentVideoStrack: videoTrack
-            }
-            this.ws.addEventListener("open",()=>{
-                this.ws?.send(id)
-            })
-            this.handleUsers()
-        }).catch(e=>{
-            alert("获取基础流失败，无法进行下一步！")
+        let audioStream = getWhiteAudioStream()
+        let audioTrack = audioStream.getAudioTracks()[0]
+        this.ws = new WebSocket(`${protocol}//${location.host}/api/chat/channel/${chatName}`)
+        let id = doName()
+        this.myself = {
+            id,
+            name,
+            whiteAudioStrack: audioTrack,
+            whiteVideoStrack: videoTrack,
+            currentAudioStrack: audioTrack,
+            currentVideoStrack: videoTrack
+        }
+        this.ws.addEventListener("open",()=>{
+            this.ws?.send(id)
         })
+        this.handleUsers()
+        // navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(stream=>{
+        //     let audioTrack = stream.getAudioTracks()[0]
+        //     audioTrack.enabled = false
+        //     this.ws = new WebSocket(`${protocol}//${location.host}/api/chat/channel/${chatName}`)
+        //     let id = doName()
+        //     this.myself = {
+        //         id,
+        //         name,
+        //         whiteAudioStrack: audioTrack,
+        //         whiteVideoStrack: videoTrack,
+        //         currentAudioStrack: audioTrack,
+        //         currentVideoStrack: videoTrack
+        //     }
+        //     this.ws.addEventListener("open",()=>{
+        //         this.ws?.send(id)
+        //     })
+        //     this.handleUsers()
+        // }).catch(e=>{
+        //     alert("获取基础流失败，无法进行下一步！")
+        // })
     }
     createPeer(newUserId:string){
         let peer = new RTCPeerConnection({
             iceServers: [{
-                urls: "stun:23.21.150.121",
+                urls: "stun:any.turn.whereby.com",
             }],
         })
         peer.addEventListener("icecandidate",e=>{
@@ -300,7 +325,6 @@ export class Meetings extends EventTarget {
             }
         }else if(config.audio == true){
             stream = await navigator.mediaDevices.getUserMedia({audio:config.audio,video:false})
-            console.log(stream.getAudioTracks()[0].enabled,"audioTrack status")
             stream.addTrack(this.myself.whiteVideoStrack)
         }else{
             stream = new MediaStream([this.myself.whiteVideoStrack,this.myself.whiteAudioStrack])
@@ -413,4 +437,100 @@ export function mixTracks(track1:MediaStreamTrack,track2:MediaStreamTrack):Media
     audioIn_02.connect(dest)
     audioContext.close()
     return dest.stream.getAudioTracks()[0]
+}
+export function composeAudioStream(){
+    let audioContext = new AudioContext()
+    let dest = audioContext.createMediaStreamDestination()
+    // 给一个默认的音频数据流，解决无音频情况下音视频不同步的问题
+    let osi = audioContext.createOscillator()
+    osi.frequency.setValueAtTime(1,0)
+    let gain = audioContext.createGain()
+    gain.gain.setValueAtTime(0,0)
+    osi.type = "sine"
+    osi.start()
+    osi.connect(gain).connect(dest)
+    let sources = [] as MediaStreamAudioSourceNode[]
+    let canvas = document.createElement("canvas")
+    const WIDTH = 1440,HEIGHT = 900
+    canvas.width = WIDTH
+    canvas.height = HEIGHT
+    let canvasCtx = canvas.getContext("2d")
+    let repaintId = 0 as any as NodeJS.Timer
+    if(canvasCtx){
+        emptyStream(canvasCtx)
+        let canvasS = canvas.captureStream()
+        dest.stream.addTrack(canvasS.getVideoTracks()[0])
+    }
+    function emptyStream(ctx:CanvasRenderingContext2D,){
+        ctx.clearRect(0,0,WIDTH,HEIGHT)
+        ctx.fillStyle = "#0F0"
+        ctx.font = "bold 52px serif"
+        ctx.fillText("没有开启视频(diqye.com)" ,300,300)
+    }
+    return {
+        stream:dest.stream,
+        updateVideo(element?:HTMLVideoElement){
+            if(canvasCtx == null) return
+            clearInterval(repaintId)
+            if(element){
+                // 此处不能使用requestAnimationFrame, 其只在当前页面活跃的情况下才会执行回调，会导致分享桌面的时丢失视频。
+                repaintId = setInterval(() => {
+                    if(canvasCtx == null) return
+                    // wh = w / h
+                    // wh = wx / h -> wx = wh * h
+                    // wh = w / hx -> w = wh * hx -> hx = w / wh
+                    let w = element.videoWidth
+                    if(w < 5){
+                        emptyStream(canvasCtx)
+                        return
+                    }
+                    let h = element.videoHeight
+                    let wh = w / h
+                    if(wh >= 1.5){
+                        canvasCtx.drawImage(element,0,0,WIDTH,WIDTH/wh)
+                    }else{
+                        canvasCtx.drawImage(element,0,0,HEIGHT*wh,HEIGHT)
+                    }
+                },100) // 如不指定间隔毫秒，经常会卡死
+            }else{
+                emptyStream(canvasCtx)
+            }
+        },
+        addStream(stream:MediaStream){
+            let source = audioContext.createMediaStreamSource(stream)
+            source.connect(dest)
+            sources.push(source) 
+        },
+        diffUpdate(streams:MediaStream[]){
+            let exsits = [] as typeof sources
+            let deletes = [] as typeof sources
+            let news = [] as typeof sources
+            streams.forEach(stream=>{
+                let a = sources.find(source=>{
+                    return source.mediaStream.id == stream.id
+                })
+                if(a){
+                    exsits.push(a)
+                }else{
+                    let source = audioContext.createMediaStreamSource(stream)
+                    source.connect(dest)
+                    news.push(source)
+                }
+            })
+            sources.forEach(source=>{
+                let a = streams.find(stream=>stream.id == source.mediaStream.id)
+                if(a){
+                    void null
+                }else{
+                    source.disconnect(dest)
+                    deletes.push(source)
+                }
+            })
+            sources = exsits.concat(news)
+            console.log("diffUpdate...",exsits,deletes,news)
+        },
+        clsoe(){
+            audioContext.close()
+        }
+    }
 }

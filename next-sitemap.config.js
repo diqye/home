@@ -4,9 +4,9 @@ let config= {
   sitemapSize: 1000,
   async additionalPaths(config){
     return [{
-      loc: "/channel/publick"
+      loc: "/channel/public"
     },{
-      loc: "/meeting/publick"
+      loc: "/meeting/public"
     }]
   }
 }

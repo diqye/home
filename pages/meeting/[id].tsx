@@ -1,15 +1,17 @@
-import { Button, Center, FormControl, Text, FormHelperText, FormLabel, Input, Stack, VStack, HStack, Box, Avatar, ListItem, Switch } from "@chakra-ui/react";
-import { assert } from "console";
+import TimeDomainWave from "@c/TimeDomainWave";
+import { Button, Center, FormControl, Text, FormHelperText, FormLabel, Input, Stack, VStack, HStack, Box, Avatar, ListItem, Switch, useToast, Tag, Card, CardBody, Link, Popover, PopoverTrigger, PopoverHeader, PopoverArrow, PopoverCloseButton, PopoverBody, PopoverContent } from "@chakra-ui/react";
 import { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { ComponentProps, FC, useEffect, useMemo, useRef, useState,HTMLAttributes, MediaHTMLAttributes } from "react";
-import { getName, Meetings, MyEvent, setName, User } from "src/meeting/Meetings";
+import { ComponentProps, FC, useEffect, useMemo, useRef, useState,HTMLAttributes, MediaHTMLAttributes, forwardRef, useImperativeHandle } from "react";
+import { useCurrent } from "src/kit";
+import { composeAudioStream, getName, Meetings, MyEvent, setName, User } from "src/meeting/Meetings";
+import {assoc} from "ramda"
 
 let TypingName : FC<{onName:(name:string)=>void}> = props => {
     let [myName,setMyName] = useState("")
     return <Center flexDir="column">
-        <FormControl w="xl" paddingTop="10" isRequired={true}>
+        <FormControl w={["full","md"]} padding="4" isRequired={true}>
             <FormLabel>你的名字</FormLabel>
             <Input type='text' placeholder="请输入你的名字" onInput={e=>setMyName(e.currentTarget.value)} />
             <FormHelperText>最少两个字符，最多十个字符</FormHelperText>
@@ -27,7 +29,8 @@ let TypingName : FC<{onName:(name:string)=>void}> = props => {
 
 type MeetingHeaderProps = {
     name: string,
-    onName: (name:string) => void
+    onName: (name:string) => void,
+    channel: string
 }
 let MeetingHeader : FC<MeetingHeaderProps> = props => {
 
@@ -41,24 +44,42 @@ let MeetingHeader : FC<MeetingHeaderProps> = props => {
             alert("字符必须大于2个并且少于50个")
         }
     }
-    return <HStack bg="teal.100" width="full" padding="4" paddingLeft="16" color="gray.500">
+    let router = useRouter()
+    function clickChannel(){
+        let newName = prompt("频道：",props.channel) || ""
+        if(newName == ""){
+            return 
+        }else if(newName.length > 2 && newName.length < 50){
+           router.push("/meeting/" + newName) 
+        }else{
+            alert("字符必须大于2个并且少于50个")
+        }
+    }
+    return <HStack bg="teal.100" width="full" padding="4"  color="gray.500" flexWrap={"wrap"}>
         <Text>你好,</Text>
         <Button colorScheme="teal" onClick={clickName} variant="link">{props.name}</Button>
-        <Text>分享链接即分享会议，无登陆，无广告，无安装。</Text>
+        <Text>欢迎来到</Text>
+        <Button colorScheme="teal" onClick={clickChannel} variant="link">{props.channel}</Button>
+        <Text>频道；只需分享一个链接，即可开启多人会议;</Text>
     </HStack>
 }
 type MeetingVideoProps = {
     srcObject?: MediaStream,
     videoProps: MediaHTMLAttributes<HTMLVideoElement>,
 }
-let MeetingVideo : FC<MeetingVideoProps>= props => {
-    let ref = useRef<HTMLVideoElement>(null)
+type RefType = HTMLVideoElement | null
+let MeetingVideo = forwardRef<RefType,MeetingVideoProps>((props,ref) => {
+    let refInner = useRef<HTMLVideoElement>(null)
+    useImperativeHandle<RefType,RefType>(ref,()=>{
+        return refInner.current
+    },[])
     useEffect(()=>{
-        if(ref.current == null) return
-        ref.current.srcObject = props.srcObject || null
+        if(typeof refInner == "object" && refInner && refInner.current != null){
+            refInner.current.srcObject = props.srcObject || null
+        }
     },[props.srcObject])
-    return <video {...props.videoProps} ref={ref}></video>
-}
+    return <video  autoPlay playsInline {...props.videoProps} ref={refInner}></video>
+})
 type MeetingListPropsUser = {
     name: string,
     id: string,
@@ -87,7 +108,7 @@ let MeetingList : FC<MeetingListProps> = props => {
     let [me,setMe] = useState({name:props.name,id:"me"} as MeetingListPropsUser)
     let [others,setOthers] = useState([] as MeetingListPropsUser[])
     let [currentMainIndex,setMainIndex] = useState(-2)
-    let mainVideo
+    let mainVideo : MeetingListPropsUser
     if(currentMainIndex == -2){
         mainVideo = me
         if(others.length>0){
@@ -146,6 +167,7 @@ let MeetingList : FC<MeetingListProps> = props => {
     let [screen,setScreen] = useState({disabled:false,opened:false})
     let [isScreenMode,setIsScreenMode] = useState(false)
     let mainContentRef = useRef<HTMLDivElement>(null)
+    let toast = useToast()
     useEffect(()=>{
         if(screen.opened){
             setVideo(a=>({...a,disabled:true}))
@@ -164,19 +186,24 @@ let MeetingList : FC<MeetingListProps> = props => {
             })
         }else{
             meetingRef.current?.turnOnMedia({audio:audio.opened,video:video.opened?"camera":"disabled"}).catch(err=>{
-                alert(err.message)
+                toast({
+                    title: "错误",
+                    description: err.message,
+                    isClosable: true
+                })
             })
         }
     },[audio.opened,video.opened,screen.opened])
     useEffect(()=>{
-        document.addEventListener("fullscreenchange",e=>{
-            console.log("fullscreenchange")
+        let fullscreenchange = () => {
             setIsScreenMode(a=>!a)
-        })
-        document.addEventListener("webkitfullscreenchange",e=>{
-            console.log("webkitfullscreenchange")
-            setIsScreenMode(a=>!a)
-        })
+        } 
+        document.addEventListener("fullscreenchange",fullscreenchange)
+        document.addEventListener("webkitfullscreenchange",fullscreenchange)
+        return ()=>{
+            document.removeEventListener("fullscreenchange",fullscreenchange)
+            document.removeEventListener("webkitfullscreenchange",fullscreenchange)
+        }
     },[])
     function screenMode(){
         if(isScreenMode){
@@ -189,14 +216,93 @@ let MeetingList : FC<MeetingListProps> = props => {
             else (a as any).webkitRequestFullscreen()
         }
     }
+    let [recordState,setRecordState] = useState({state:"start",startTime:-1,lastTime:0,dataUrl:"",subfix:".webm"})
+    let recordRef = useRef<any>()
+    let mainVideoRef = useRef<HTMLVideoElement>(null)
+    let current = useCurrent({
+        me:()=>me,
+        others:()=>others
+    })
+    useEffect(()=>{
+        if(recordRef.current == null) return
+        recordRef.current.diffUpdate([me,...others].map(a=>a.stream).filter(a=>a!=null) as any)
+    },[others,me])
+    useEffect(()=>{
+        if(recordState.state == "start") {
+            let cas = composeAudioStream()
+            let chunks = [] as Blob[]
+            let getURL = () =>  URL.createObjectURL(new Blob(chunks,{type: "video/webm;"}))
+            let record = null as any as MediaRecorder
+            let diffUpdate = (streams:MediaStream[]) => {
+                cas.diffUpdate(streams)
+            }
+            let mimeType : string 
+            if(MediaRecorder.isTypeSupported("video/mp4;")){
+                mimeType = "video/mp4;"
+                setRecordState(assoc("subfix",".mp4"))
+            }else if(MediaRecorder.isTypeSupported("video/webm;")){
+                mimeType = "video/webm;"
+                setRecordState(assoc("subfix",".webm"))
+            }else{
+                mimeType = ""
+            }
+            record = new MediaRecorder(cas.stream,{mimeType})
+            record.addEventListener("dataavailable",e=>{
+                chunks.push(e.data)
+                e.data.arrayBuffer().then(a=>{
+                    console.log("dataavailable",a.byteLength/1000/1000+"M",chunks.length)
+                })
+                setRecordState(a=>{
+                    URL.revokeObjectURL(a.dataUrl)
+                    return {...a,dataUrl:getURL()}
+                })
+            })
+            recordRef.current = {
+                getURL,
+                diffUpdate,
+                start(){
+                    diffUpdate([current.me(),...current.others()].map(a=>a.stream).filter(a=>a!=null) as any)
+                    if(mainVideoRef.current) cas.updateVideo(mainVideoRef.current)
+                    if(record.state == "paused"){
+                        record.resume()
+                    }else{
+                        record.start()
+                    }
+                },
+                pause(){
+                    if(record.state == "inactive"){
+                        void null
+                    }else{
+                        record.pause()
+                        record.requestData() // Actively fire dataavalilable event 
+                    }
+                },
+                stop(){
+                    cas.clsoe()
+                    record.stop()
+                }
+            }
+        }else if(recordState.state == "started" && recordRef.current) {
+            recordRef.current.start()
+            setRecordState(a=>({...a,startTime:Date.now()}))
+        }else if(recordState.state == "paused" && recordRef.current) {
+            recordRef.current.pause()
+            setRecordState(a=>({...a,startTime:0,lastTime:a.lastTime + Date.now() - a.startTime}))
+        }else if(recordState.state == "continued" && recordRef.current) {
+            recordRef.current.start()
+            setRecordState(a=>({...a,startTime:Date.now()}))
+        }
+    },[recordState.state])
+
     return <Stack alignItems="center" spacing="0">
-        <MeetingHeader name={props.name} onName={onName}></MeetingHeader>
+        <MeetingHeader name={props.name} channel={router.query.id as string} onName={onName}></MeetingHeader>
         <canvas width={2} height={2} style={{border:"1px solid red",display:"none"}} ref={defuatStreamProvider}></canvas>
         <HStack w={isScreenMode?"100%":"900px"} spacing={0} boxShadow="xl" pt="4" ref={mainContentRef} >
             <Box bg="gray.300" color="white" borderRadius="lg" position="relative" borderRightRadius="none" w={isScreenMode?"calc(100% - 100px)":"800px"} height={isScreenMode?"100vh":"500px"}>
                 {/* <video  autoPlay muted width="100%"></video> */}
                 <Avatar name={mainVideo?.name} size="2xl" position="absolute" top="50%" left="50%" zIndex={0} transform="translate(-50%, -50%)" />
                 <MeetingVideo
+                ref={mainVideoRef}
                 srcObject={mainVideo?.stream}
                 videoProps={{autoPlay:true,muted:true,style:{margin:"auto",maxWidth:"100%",maxHeight:"100%",position:"relative",zIndex:"7",width:isScreenMode?"100%":"auto"}}} />
                 <HStack position="absolute" zIndex={10} bottom="0" w="full" pl="4">
@@ -218,14 +324,51 @@ let MeetingList : FC<MeetingListProps> = props => {
                         </FormLabel>
                         <Switch isChecked={screen.opened} isDisabled={screen.disabled} onChange={()=>setScreen(a=>({...a,opened:!a.opened}))} />
                     </FormControl>
-                    <Button bg="gray.400" onClick={screenMode}>{isScreenMode?"退出全屏":"全屏模式"}</Button>
+                    <Button bg="gray.400" size="sm" onClick={screenMode}>{isScreenMode?"退出全屏":"全屏模式"}</Button>
                 </HStack>
+                {/* <TimeDomainWave stream={mainVideo.stream} /> */}
             </Box>
             <Box background="gray.200" borderRadius="lg" borderLeftRadius="none" w="100px" height={isScreenMode?"100vh":"500px"} overflow="auto">
                 {listItem(me,true,()=>setMainIndex(-1),currentMainIndex == -1)}
                 {others.map((user,i)=>listItem(user,false,()=>setMainIndex(i),currentMainIndex == i))}
             </Box>
         </HStack>
+        <Box h="2"></Box>
+        <Card w="xl">
+            <CardBody flexDir="row">
+                <HStack>
+                    {(()=>{
+                        if(recordState.state == "start"){
+                            return <Button size="sm" onClick={()=>setRecordState(a=>({...a,state:"started"}))}>开始录制</Button>
+                        }else if(recordState.state == "started" || recordState.state == "continued"){
+                            return <Button size="sm" onClick={()=>setRecordState(a=>({...a,state:"paused"}))}>暂停录制</Button>
+                        }else{
+                            return <Button size="sm" onClick={()=>setRecordState(a=>({...a,state:"continued"}))}>继续录制</Button>
+                        }
+                    })()}
+                    {   recordState.startTime != -1 ? <TimerCounter start={recordState.startTime} last={recordState.lastTime} /> : <></>}
+                    {   recordState.dataUrl != "" ? <>
+                            <Popover placement='top-start'>
+                                <PopoverTrigger>
+                                    <Button size="sm">预览</Button>
+                                </PopoverTrigger>
+                                <PopoverContent>
+                                    <PopoverHeader>预览</PopoverHeader>
+                                    <PopoverArrow />
+                                    <PopoverCloseButton />
+                                    <PopoverBody>
+                                        <video src={recordState.dataUrl} controls playsInline></video>
+                                    </PopoverBody>
+                                </PopoverContent>
+                            </Popover>
+                            <Link href={recordState.dataUrl} download={"free-meeting" + recordState.subfix}>下载</Link>
+                        </>
+                    :   <></>
+                    }
+                    <Text>录制主区域图像和所有人的声音</Text>
+                </HStack>
+            </CardBody>
+        </Card>
     </Stack>
 }
 function listItem(user:MeetingListPropsUser,muted:boolean = false,onClick:()=>void,selected:boolean){
@@ -234,6 +377,8 @@ function listItem(user:MeetingListPropsUser,muted:boolean = false,onClick:()=>vo
         <MeetingVideo
         srcObject={user.stream}
         videoProps={{autoPlay:true,muted,style:{maxWidth:"100%",maxHeight:"100%",position:"absolute",top:"50%",left:"50%",translate:"-50% -50%"}}} />
+        <Tag pos="absolute" right={0} bottom={0} opacity={.5}>{user.name}</Tag>
+        <TimeDomainWave stream={user.stream} />
     </Center>
 }
 let Meeting: NextPage = props => {
@@ -247,12 +392,38 @@ let Meeting: NextPage = props => {
     });
     return <>
         <Head>
-            <title>免费在线会议</title>
+            <title>自由会议</title>
             <meta name="keywords" content="自由、免费、无登陆" />
-            <meta name="description" content="自由免费无登陆" />
+            <meta name="description" content="只需分享一个链接，即可开启多人会议" />
         </Head>
         {myName == "" ? <TypingName onName={onName}/> : <MeetingList onName={onName} name={myName}/>}
     </>
+}
+type TimerCounterProps = {
+    start: number,
+    last: number
+}
+function TimerCounter(props:TimerCounterProps):any{
+    let [currentTime,setCurrnetTime] = useState(0)
+    useEffect(()=>{
+        let t = setInterval(()=>{
+            setCurrnetTime(Date.now())
+        },500)
+        return () => {
+            clearInterval(t)
+        }
+    },[])
+    function diffCurrent(a:number){
+        if(a==0) return 0
+        else return currentTime - a
+    }
+    function mstostr(ms:number){
+        if(ms < 0) return "0.0"
+        let minute = Math.floor(ms/1000/60)
+        let mod = Math.floor((ms/1000)%60)
+        return minute + "." + mod
+    }
+    return <Tag>{mstostr(diffCurrent(props.start) + props.last)}m</Tag>
 }
 export default Meeting
 

@@ -27,10 +27,10 @@ const Home : NextPage = () => {
     <Wrap spacing="5" padding="4">
       <WrapItem w="xs" borderRadius="2xl" boxShadow="outline">
         <VStack alignItems="flex-start" padding="4" >
-          <Heading size="md">数据在线传输频道</Heading>
+          <Heading size="md">数据在线传输</Heading>
           <Text>一个链接即可在多个设备之间传递数据。</Text>
           <FormControl size="sm">
-            <FormLabel>频道名称:</FormLabel>
+            <FormLabel>频道:</FormLabel>
             <InputGroup>
               <Input type='text' placeholder='输入频道名称' value={channel} onInput={e=>setChannel(e.currentTarget.value)}  />
               <InputRightElement width="3em">
@@ -44,10 +44,10 @@ const Home : NextPage = () => {
       </WrapItem>
       <WrapItem w="xs" borderRadius="2xl" boxShadow="outline">
         <VStack alignItems="flex-start" padding="4">
-          <Heading size="md">在线会议</Heading>
-          <Text>支持音频、视频和共享桌面。</Text>
+          <Heading size="md">自由会议</Heading>
+          <Text>只需分享一个链接，即可开启多人会议，支持音频、视频和共享桌面。支持录制为webm文件，亦可作为录屏工具使用。</Text>
           <FormControl size="sm">
-            <FormLabel>频道名称:</FormLabel>
+            <FormLabel>频道:</FormLabel>
             <InputGroup>
               <Input type='text' placeholder='输入频道名称' value={meeting} onInput={e=>setMeeting(e.currentTarget.value)}  />
               <InputRightElement width="3em">
