@@ -1,13 +1,16 @@
 import TimeDomainWave from "@c/TimeDomainWave";
-import { Button, Center, FormControl, Text, FormHelperText, FormLabel, Input, Stack, VStack, HStack, Box, Avatar, ListItem, Switch, useToast, Tag, Card, CardBody, Link, Popover, PopoverTrigger, PopoverHeader, PopoverArrow, PopoverCloseButton, PopoverBody, PopoverContent } from "@chakra-ui/react";
+import { Button, Center, FormControl, Text, FormHelperText, FormLabel, Input, Stack, VStack, HStack, Box, Avatar, ListItem, Switch, useToast, Tag, Card, CardBody, Link, Popover, PopoverTrigger, PopoverHeader, PopoverArrow, PopoverCloseButton, PopoverBody, PopoverContent, useDisclosure } from "@chakra-ui/react";
 import { NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { ComponentProps, FC, useEffect, useMemo, useRef, useState,HTMLAttributes, MediaHTMLAttributes, forwardRef, useImperativeHandle } from "react";
-import { useCurrent } from "src/kit";
+import { isMobile, useCurrent } from "src/kit";
 import { composeAudioStream, getName, Meetings, MyEvent, setName, User } from "src/meeting/Meetings";
 import {assoc} from "ramda"
 
+type Arrow = ()=>void
+
+  
 let TypingName : FC<{onName:(name:string)=>void}> = props => {
     let [myName,setMyName] = useState("")
     return <Center flexDir="column">
@@ -60,7 +63,10 @@ let MeetingHeader : FC<MeetingHeaderProps> = props => {
         <Button colorScheme="teal" onClick={clickName} variant="link">{props.name}</Button>
         <Text>欢迎来到</Text>
         <Button colorScheme="teal" onClick={clickChannel} variant="link">{props.channel}</Button>
-        <Text>频道；只需分享一个链接，即可开启多人会议;</Text>
+        <Text>频道；可复制链接邀请朋友; 若需返回上一个页面点击</Text>
+        <Link href={"/meeting"} colorScheme="blue">
+            返回
+        </Link>
     </HStack>
 }
 type MeetingVideoProps = {
@@ -197,7 +203,11 @@ let MeetingList : FC<MeetingListProps> = props => {
     useEffect(()=>{
         let fullscreenchange = () => {
             setIsScreenMode(a=>!a)
-        } 
+        }
+        //如果是ipad 或者 iphone 
+        if(isMobile()){
+            setAudio(assoc("opened",true))
+        }
         document.addEventListener("fullscreenchange",fullscreenchange)
         document.addEventListener("webkitfullscreenchange",fullscreenchange)
         return ()=>{
@@ -297,7 +307,7 @@ let MeetingList : FC<MeetingListProps> = props => {
     return <Stack alignItems="center" spacing="0">
         <MeetingHeader name={props.name} channel={router.query.id as string} onName={onName}></MeetingHeader>
         <canvas width={2} height={2} style={{border:"1px solid red",display:"none"}} ref={defuatStreamProvider}></canvas>
-        <HStack w={isScreenMode?"100%":"900px"} spacing={0} boxShadow="xl" pt="4" ref={mainContentRef} >
+        <HStack display={{lg:"flex",base:"none"}} w={isScreenMode?"100%":"900px"} spacing={0} boxShadow="xl" pt="4" ref={mainContentRef} >
             <Box bg="gray.300" color="white" borderRadius="lg" position="relative" borderRightRadius="none" w={isScreenMode?"calc(100% - 100px)":"800px"} height={isScreenMode?"100vh":"500px"}>
                 {/* <video  autoPlay muted width="100%"></video> */}
                 <Avatar name={mainVideo?.name} size="2xl" position="absolute" top="50%" left="50%" zIndex={0} transform="translate(-50%, -50%)" />
@@ -333,8 +343,26 @@ let MeetingList : FC<MeetingListProps> = props => {
                 {others.map((user,i)=>listItem(user,false,()=>setMainIndex(i),currentMainIndex == i))}
             </Box>
         </HStack>
+        <Stack display={{lg:"none",base:"flex"}} w="400px">
+            <HStack pt="4">
+                <FormControl display='flex' alignItems='center' w="150px">
+                    <FormLabel htmlFor='email-alerts' mb='0'>
+                        麦克风
+                    </FormLabel>
+                    <Switch isChecked={audio.opened} isDisabled={audio.disabled} onChange={()=>setAudio(a=>({...a,opened:!a.opened}))} />
+                </FormControl>
+                <FormControl display='flex' alignItems='center' w="150px">
+                    <FormLabel htmlFor='email-alerts' mb='0'>
+                        摄像头
+                    </FormLabel>
+                    <Switch isChecked={video.opened} isDisabled={video.disabled} onChange={()=>setVideo(a=>({...a,opened:!a.opened}))} />
+                </FormControl>
+            </HStack>
+            {listItem(me,true,()=>setMainIndex(-1),currentMainIndex == -1,"250px")}
+            {others.map((user,i)=>listItem(user,false,()=>setMainIndex(i),currentMainIndex == i,"250px"))}
+        </Stack>
         <Box h="2"></Box>
-        <Card w="xl">
+        <Card w={["full","full","xl"]}>
             <CardBody flexDir="row">
                 <HStack>
                     {(()=>{
@@ -371,8 +399,8 @@ let MeetingList : FC<MeetingListProps> = props => {
         </Card>
     </Stack>
 }
-function listItem(user:MeetingListPropsUser,muted:boolean = false,onClick:()=>void,selected:boolean){
-    return <Center w="full" height="62.5px" position="relative" key={user.id} cursor="pointer" onClick={onClick} shadow={selected?"dark-lg":"none"}>
+function listItem(user:MeetingListPropsUser,muted:boolean = false,onClick:()=>void,selected:boolean,height="62.5px"){
+    return <Center w="full" height={height} position="relative" key={user.id} cursor="pointer" onClick={onClick} shadow={selected?"dark-lg":"none"}>
         <Avatar name={user.name} />
         <MeetingVideo
         srcObject={user.stream}
@@ -381,7 +409,7 @@ function listItem(user:MeetingListPropsUser,muted:boolean = false,onClick:()=>vo
         <TimeDomainWave stream={user.stream} />
     </Center>
 }
-let Meeting: NextPage = props => {
+let Meeting: NextPage<{ua:string}> = props => {
     let [myName,setMyName] = useState("")
     let onName = (name:string) => {
         setMyName(name)
@@ -390,13 +418,16 @@ let Meeting: NextPage = props => {
     useEffect(() => {
         setMyName(getName())
     });
+
     return <>
         <Head>
             <title>自由会议</title>
             <meta name="keywords" content="自由、免费、无登陆" />
             <meta name="description" content="只需分享一个链接，即可开启多人会议" />
         </Head>
-        {myName == "" ? <TypingName onName={onName}/> : <MeetingList onName={onName} name={myName}/>}
+        { myName == "" ? <TypingName onName={onName}/>
+        : <MeetingList onName={onName} name={myName}/>
+        }
     </>
 }
 type TimerCounterProps = {
@@ -424,6 +455,10 @@ function TimerCounter(props:TimerCounterProps):any{
         return minute + "." + mod
     }
     return <Tag>{mstostr(diffCurrent(props.start) + props.last)}m</Tag>
+}
+Meeting.getInitialProps = ctx => {
+    let ua = ctx.req?.headers["user-agent"] || ""
+    return {ua}
 }
 export default Meeting
 

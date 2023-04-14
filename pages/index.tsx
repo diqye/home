@@ -6,12 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 
 const Home : NextPage = () => {
-  let [currentPath, setCurrentPath] = useState("/")
-  let [channel,setChannel] = useState("public")
-  let [meeting,setMeeting] = useState("public")
-  useEffect(()=>{
-    setCurrentPath(location.href + "channel/")
-  },[])
+
   return <Stack>
     <Head>
       <title>第七页(diqye)个人工具箱</title>
@@ -20,43 +15,27 @@ const Home : NextPage = () => {
     </Head>
     <VStack bg="teal.400" color="whiteAlpha.900" padding="4">
       <Heading w="full">
-        我的个人工具
+       第七页(diqye)的个人工具
       </Heading>
       <Text w="full">这里的所有工具均为绿色原则，即无登陆、无广告和无安装。打开链接即可用，分享链接即共享。</Text>
     </VStack>
     <Wrap spacing="5" padding="4">
       <WrapItem w="xs" borderRadius="2xl" boxShadow="outline">
         <VStack alignItems="flex-start" padding="4" >
-          <Heading size="md">数据在线传输</Heading>
-          <Text>一个链接即可在多个设备之间传递数据。</Text>
-          <FormControl size="sm">
-            <FormLabel>频道:</FormLabel>
-            <InputGroup>
-              <Input type='text' placeholder='输入频道名称' value={channel} onInput={e=>setChannel(e.currentTarget.value)}  />
-              <InputRightElement width="3em">
-                <Link href={"/channel/" + channel} passHref>
-                  <Button as="a" size="xs" colorScheme="teal"> 进入</Button>
-                </Link>
-              </InputRightElement>
-            </InputGroup>
-          </FormControl>
+          <Heading size="md">信息在线传输</Heading>
+          <Text>一个链接即可在多个设备之间传递信息。</Text>
+          <Link href={"/channel"} passHref>
+            <Button as="a" colorScheme="teal"> 进入</Button>
+          </Link>
         </VStack>
       </WrapItem>
       <WrapItem w="xs" borderRadius="2xl" boxShadow="outline">
         <VStack alignItems="flex-start" padding="4">
           <Heading size="md">自由会议</Heading>
           <Text>只需分享一个链接，即可开启多人会议，支持音频、视频和共享桌面。支持录制为webm文件，亦可作为录屏工具使用。</Text>
-          <FormControl size="sm">
-            <FormLabel>频道:</FormLabel>
-            <InputGroup>
-              <Input type='text' placeholder='输入频道名称' value={meeting} onInput={e=>setMeeting(e.currentTarget.value)}  />
-              <InputRightElement width="3em">
-                <Link href={"/meeting/" + meeting} passHref>
-                  <Button as="a" size="xs" colorScheme="teal"> 进入</Button>
-                </Link>
-              </InputRightElement>
-            </InputGroup>
-          </FormControl>
+          <Link href={"/meeting"} passHref>
+            <Button as="a" colorScheme="teal"> 进入</Button>
+          </Link>
         </VStack>
       </WrapItem>
       <WrapItem w="xs" borderRadius="2xl" boxShadow="outline">
@@ -80,7 +59,7 @@ const Home : NextPage = () => {
       <WrapItem w="xs" borderRadius="2xl" boxShadow="outline">
         <VStack alignItems="flex-start" padding="4">
           <Heading size="md">英语强化练习</Heading>
-          <Text>个人使用的强化练习用语的工具，需要装一个chrome扩展，主要功能是对输入的每一行中文或英文分成一个个可跟读的页面。</Text>
+          <Text>个人使用的强化练习用语的工具，需要装一个chrome扩展，主要功能是对输入的每一行中文或英文分成一个个单独页面,利用语音合成技术朗读文字，支持倍速功能。</Text>
           <Link href={"/words"} passHref>
             <Button colorScheme="teal" as="a">Words</Button>
           </Link>

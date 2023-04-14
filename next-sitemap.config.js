@@ -3,11 +3,12 @@ let config= {
   generateRobotsTxt:true,
   sitemapSize: 1000,
   async additionalPaths(config){
-    return [{
-      loc: "/channel/public"
-    },{
-      loc: "/meeting/public"
-    }]
+    return []
+    // return [{
+    //   loc: "/channel/public"
+    // },{
+    //   loc: "/meeting/public"
+    // }]
   }
 }
 

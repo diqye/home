@@ -1,6 +1,6 @@
 import { Stack,chakra,useColorMode,Text, Box, IconButton, ChakraProps, Center, useColorModeValue, Tooltip, useToken, useTheme, VStack, BoxProps, TextProps, TextareaProps, useClipboard, useToast, UseModalProps, Button, Input, useDisclosure } from '@chakra-ui/react'
 import type { NextPage } from 'next'
-import {CopyIcon, MoonIcon,SmallAddIcon,SunIcon} from '@chakra-ui/icons'
+import {ChevronLeftIcon, CopyIcon, MoonIcon,SmallAddIcon,SunIcon} from '@chakra-ui/icons'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import FlexInputAutomatically from '@c/FlexInputAutomatically'
 import Sending from "src/icons/Sending"
@@ -17,59 +17,12 @@ import {
 } from '@chakra-ui/react'
 import MoonButton from '@c/MoonButton'
 import Head from 'next/head'
+import { compose, pipe, prepend, take } from 'ramda'
 
 type SwitchChannelProps = {
   isOpen: boolean,
   onClose: UseModalProps["onClose"],
   onOk: (a:string) => void
-}
-let SwitchChannel : React.FC<SwitchChannelProps> = props => {
-  let [channel,setChannel] = useState({
-    value: "",
-    isInvalid: false
-  })
-  let onOk : React.MouseEventHandler<HTMLButtonElement> = e => {
-    if(channel.value == ""){
-      setChannel(a=>({...a,isInvalid:true}))
-    }else{
-      props.onOk(channel.value)
-      setChannel(a=>{
-        return {
-          isInvalid: false,
-          value: ""
-        }
-      })
-    }
-  }
-  let onInput : React.FormEventHandler<HTMLInputElement> = e => {
-      if(e.currentTarget.value == "" || e.currentTarget.value.trim()==""){
-        setChannel(oldV => {
-          return {...oldV,value:""}
-        })
-      }else{
-        setChannel({value:e.currentTarget.value,isInvalid:false})
-      }
-  }
-  return <Modal isOpen={props.isOpen} onClose={props.onClose}>
-  <ModalOverlay />
-  <ModalContent>
-    <ModalHeader>切换频道</ModalHeader>
-    <ModalCloseButton />
-    <ModalBody>
-      <Input variant='flushed'
-      onInput={onInput}
-      isInvalid={channel.isInvalid}
-      value={channel.value} placeholder='输入频道名称' />
-    </ModalBody>
-
-    <ModalFooter>
-      <Button colorScheme='blue' mr={3} onClick={props.onClose}>
-        关闭
-      </Button>
-      <Button onClick={onOk} variant='ghost'>确定</Button>
-    </ModalFooter>
-  </ModalContent>
-</Modal>
 }
 
 let BoxOut : React.FC<{children: React.ReactElement[]}> = props => {
@@ -81,8 +34,7 @@ let BoxOut : React.FC<{children: React.ReactElement[]}> = props => {
   borderColor={useColorModeValue("gray.200","gray.500")}
   borderWidth="1px"
   borderRadius="xl"
-  paddingTop="84px"
-  paddingBottom="78px"
+  paddingTop="140px"
   overflow="hidden"
   borderBottom="none">
     {props.children}
@@ -153,7 +105,7 @@ const TextS : NextPage<{id:string}> = ({id}) => {
   function onMessageFromServer(data:{tag:string,contents:any},ws:WebSocket){
     if(data.tag == "CInitialInfo"){
       setChatWS(ws)
-      setList(data.contents.recentMessages.reverse())
+      setList(data.contents.recentMessages)
       setListUpdatedVersion(Date.now())
       setMembers(data.contents.onlineMember)
     } else if(data.tag=="CIllegeData"){
@@ -163,7 +115,7 @@ const TextS : NextPage<{id:string}> = ({id}) => {
         isClosable: true
       })
     } else if(data.tag == "CMessage"){
-      setList(list => list.concat([data.contents]).slice(0,1000))
+      setList(pipe(take(1000),prepend(data.contents)))
       setListUpdatedVersion(Date.now())
     } else if(data.tag == "COffLine"){
       let a = data.contents[0][1]
@@ -180,7 +132,6 @@ const TextS : NextPage<{id:string}> = ({id}) => {
     if(listUpdatedVersion == 0){
       void null
     }else{
-      window.scrollTo(0,document.body.scrollHeight)
     }
   },[listUpdatedVersion])
   
@@ -274,11 +225,6 @@ const TextS : NextPage<{id:string}> = ({id}) => {
       }) 
     }
   },[hasCopied])
-  let { isOpen, onOpen, onClose } = useDisclosure()
-  let onConfirm: SwitchChannelProps["onOk"] = e => {
-    router.push("/channel/" + e)
-    onClose()
-  }
   let redScheme = useColorModeValue("red.500","red.300")
   return (
     <BoxOut>
@@ -287,16 +233,20 @@ const TextS : NextPage<{id:string}> = ({id}) => {
         <meta name="keywords" content="在线文件传输助手" />
         <meta name="description" content="永远绿色，永无登陆，文件传输" />
       </Head>
-      <SwitchChannel isOpen={isOpen} onClose={onClose} onOk={onConfirm} />
       <Stack
       direction={"row"}
-      zIndex="docked"
       bg={useColorModeValue("gray.200","gray.500")}
+      zIndex="docked"
       position="fixed"
+      top="0"
       w={["100vw",null,"xl"]}
       padding="4"
-      top="0"
       alignItems={"center"}>
+        
+        <IconButton
+          title="返回"
+          onClick={()=>location.href = "/channel"}
+          aria-label='返回' size={"sm"} icon={<ChevronLeftIcon />} />
         <Text fontSize={"md"}>
           {router.query.id}
         </Text>
@@ -310,21 +260,15 @@ const TextS : NextPage<{id:string}> = ({id}) => {
             onClick={onCopy}
             aria-label='复制链接发送给朋友即可共享' size={"sm"} icon={<CopyIcon />} />
           </Tooltip>
-          <IconButton
-          title="更换一个频道"
-          onClick={onOpen}
-          aria-label='更换一个频道' size={"sm"} icon={<SmallAddIcon />} />
+
           <MoonButton />
         </Stack>
       </Stack>
-      <VStack spacing={12}>
-        {list.map(a=><Message message={a} key={a.sender+a.time} type={a.sender == me ? "me" : "other"} />)}
-      </VStack>
       <Box
-      position="fixed"
       w={["100vw",null,"xl"]}
-      bottom={0}
       zIndex="docked"
+      position="fixed"
+      top="64px"
       bg={useColorModeValue("gray.200","gray.500")}
       ml="-1px"
       padding="8px 16px"
@@ -341,6 +285,8 @@ const TextS : NextPage<{id:string}> = ({id}) => {
         onInput={message=>setMessage(message)}
          />
         <Sending
+        color={message.length>0?"teal":"gray"}
+        transform="rotate(90deg)"
         position="absolute"
         zIndex="docked"
         boxSize={6}
@@ -350,6 +296,9 @@ const TextS : NextPage<{id:string}> = ({id}) => {
         top="4"
         />
       </Box>
+      <VStack spacing={12}>
+        {list.map(a=><Message message={a} key={a.sender+a.time} type={a.sender == me ? "me" : "other"} />)}
+      </VStack>
     </BoxOut>
   )
 }

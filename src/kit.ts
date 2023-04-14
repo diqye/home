@@ -11,29 +11,25 @@ export function useCurrent<T extends Record<string,any>>(fns:T):T{
 }
 let detectedMobile = false
 let detectedR = false
-export function isMobile() {
+export function isMobile(ua?:string) {
   if(detectedMobile){
     return detectedR
   }
-  var userAgentInfo = navigator.userAgent;
-  var mobileAgents = [ "Android", "iPhone", "SymbianOS", "Windows Phone", "iPad","iPod"];
-  var mobile_flag = false;
+  var userAgentInfo = ua?ua:navigator.userAgent;
+  // 由于iPad会伪装成电脑的UA，所以判断不出来
+  var mobileAgents = ["Android", "iPhone", "SymbianOS", "Windows Phone", "iPad","iPod"];
   //根据userAgent判断是否是手机
   for (var v = 0; v < mobileAgents.length; v++) {
       if (userAgentInfo.indexOf(mobileAgents[v]) > 0) {
-          mobile_flag = true;
-          break;
+        return true
       }
   }
-   var screen_width = window.screen.width;
-   var screen_height = window.screen.height;   
-   //根据屏幕分辨率判断是否是手机
-   if(screen_width < 500 && screen_height < 800){
-       mobile_flag = true;
-   }
-   detectedMobile = true
-   detectedR = mobile_flag
-   return mobile_flag;
+  if(ua) return false
+  if(mobileAgents.includes("Mac")){
+    return "ontouchend" in document
+  }else{
+    return false
+  }
 }
 
 type ColorScheme = ThemeComponentProps["colorScheme"]

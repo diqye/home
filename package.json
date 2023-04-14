@@ -15,6 +15,7 @@
     "@chakra-ui/react": "^2.5.2",
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
+    "@reduxjs/toolkit": "^1.9.3",
     "@tensorflow/tfjs": "^4.1.0",
     "@tensorflow/tfjs-vis": "^1.5.1",
     "@types/ramda": "^0.28.23",
@@ -24,7 +25,8 @@
     "next": "12.2.0",
     "ramda": "^0.29.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "react-redux": "^8.0.5"
   },
   "devDependencies": {
     "@types/node": "18.0.1",
