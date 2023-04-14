@@ -226,7 +226,7 @@ export class Meetings extends EventTarget {
                 })
                 this.dispatchEvent(new MyEvent("users",this.users.concat([])))
             }
-            console.log("json",json)
+            console.log("message:",json)
         })
     }
     async setAnswer(msg:CMsg<RTCSessionDescriptionInit>){
@@ -261,8 +261,8 @@ export class Meetings extends EventTarget {
             audioSender,
             videoSender
         })
-        this.dispatchEvent(new MyEvent("users",this.users.concat([])))
         this.doQueue()
+        this.dispatchEvent(new MyEvent("users",this.users.concat([])))
         console.log("FLOW: Create answer and set remote description and local description",msg.c_sender)
     }
     async connectPeerByOffer(newUserId: string) {
@@ -293,8 +293,8 @@ export class Meetings extends EventTarget {
             audioSender,
             videoSender
         })
-        this.dispatchEvent(new MyEvent("users",this.users.concat([])))
         this.doQueue()
+        this.dispatchEvent(new MyEvent("users",this.users.concat([])))
         console.log("FLOW: Create offer and set local description",newUserId)
     }
     sendSignaling(json:any){

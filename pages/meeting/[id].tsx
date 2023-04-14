@@ -148,12 +148,12 @@ let MeetingList : FC<MeetingListProps> = props => {
         meetInfo.addEventListener("users",e=>{
             if(e instanceof MyEvent){
                 setOthers(others=>e.data.map((user:User)=>{
-                    let old = others.find(other=>other.id = user.id)
-                    let steram = old&&old.stream?old.stream:new MediaStream(user.peer.getReceivers().map(a=>a.track))
+                    let old = others.find(other=>other.id == user.id)
+                    let stream = old&&old.stream?old.stream:new MediaStream(user.peer.getReceivers().map(a=>a.track))
                     return {
                         id: user.id,
                         name: user.name,
-                        stream: steram
+                        stream
                     }
                 }))
             }
