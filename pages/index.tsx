@@ -84,6 +84,9 @@ const Home : NextPage = () => {
         </VStack>
       </WrapItem>
     </Wrap>
+    <VStack bg="teal.400" color="whiteAlpha.900" padding="4">
+      <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备17004650号-1</a>
+    </VStack>
   </Stack>
 }
 export default Home

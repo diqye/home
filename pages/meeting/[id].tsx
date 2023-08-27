@@ -351,7 +351,8 @@ let MeetingList : FC<MeetingListProps> = props => {
                     </FormLabel>
                     <Switch isChecked={audio.opened} isDisabled={audio.disabled} onChange={()=>setAudio(a=>({...a,opened:!a.opened}))} />
                 </FormControl>
-                <FormControl display='flex' alignItems='center' w="150px">
+                <FormControl
+                display='flex' alignItems='center' w="150px">
                     <FormLabel htmlFor='email-alerts' mb='0'>
                         摄像头
                     </FormLabel>

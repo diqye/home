@@ -1,4 +1,4 @@
-import { Box, Button, Checkbox, color, Heading, HStack, Input, Stack, Textarea } from "@chakra-ui/react"
+import { Box, Button, Checkbox, color, Heading, HStack, Input, Stack, Text, Textarea } from "@chakra-ui/react"
 import { NextPage } from "next"
 import Chart, { ChartConfiguration, ChartData } from 'chart.js/auto';
 import { ChangeEvent, useEffect, useRef, useState } from "react";
@@ -141,8 +141,10 @@ const MyChart: NextPage = () => {
       a.destroy()
     }
   },[])
+  
   return <Stack p="10">
     <Heading>JSON转图表</Heading>
+    <MyCount></MyCount>
     <Box w="full">
       <canvas ref={chartRef} width="400" height="200"></canvas>
     </Box>
@@ -161,3 +163,31 @@ const MyChart: NextPage = () => {
   </Stack>
 }
 export default MyChart
+
+function useMyEvent<R>(fn:(...args:any)=>R){
+   let ref = useRef<Function>(fn)
+   ref.current = fn
+   return (...args:Parameters<typeof fn>)=>{
+    return ref.current(...args) as R
+   }
+}
+function MyCount(){
+  let [count,setCount] = useState(0)
+  let ref = useRef(null)
+  let fn = useMyEvent((a:string)=>{
+    (ref.current as any).innerText = "log:" + count
+    setCount(a=>a+1)
+  })
+  useEffect(()=>{
+    let interval = setInterval(()=>{
+      fn()
+    },1000)
+    return ()=>{
+      clearInterval(interval)
+    }
+  },[])
+  return <>
+    <Text>my count {count}</Text>
+    <Text ref={ref}></Text>
+  </>
+}
