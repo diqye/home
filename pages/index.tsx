@@ -85,7 +85,7 @@ const Home : NextPage = () => {
       </WrapItem>
     </Wrap>
     <VStack bg="teal.400" color="whiteAlpha.900" padding="4">
-      <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备17004650号-1</a>
+      <a href="https://beian.miit.gov.cn/" target="_blank">京ICP备2023026876号-1</a>
     </VStack>
   </Stack>
 }

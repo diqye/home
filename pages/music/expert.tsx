@@ -19,7 +19,7 @@ let ExpertMusic : NextPage = props =>{
   let [keyOnPiano,setKeyOnPiano] = useState("")
   let [actives,setActives] = useState([] as string[])
   let gainRef = useRef<GainNode>()
-  let [volume,setVolumeInner] = useState(0.25)
+  let [volume,setVolumeInner] = useState(0.5)
   function setVolume(v:number){
     let a = v/100
     gainRef.current?.gain.setValueAtTime(a,0)
@@ -68,7 +68,7 @@ let ExpertMusic : NextPage = props =>{
     let map = {} as Record<string,{indown:boolean,source?:ReturnType<typeof createWave>}>
     gainRef.current = actx.createGain()
     let gain = gainRef.current
-    gain.gain.setValueAtTime(.25,0)
+    gain.gain.setValueAtTime(.5,0)
     let keydownfn = (e:KeyboardEvent) =>{
       if(e.key.length > 1 || map[e.key]?.indown){
         return 

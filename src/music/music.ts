@@ -40,7 +40,6 @@ export async function loadMusicBox(ctx=actx,type:IType="bayinhe"){
 type Zone = Awaited<ReturnType<typeof loadMusicBox>>[0]
 
 export function createWave(ctx=actx,zones:Zone[],key:number,startTime?:number){
-  
   let zone = zones.find(a=>{
     return a.keyRangeLow <= key && a.keyRangeHigh + 1 >= key
   })
